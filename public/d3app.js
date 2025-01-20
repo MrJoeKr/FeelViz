@@ -6,41 +6,145 @@ const height = screen.height;
 
 const fontFamily = "Trebuchet MS";
 
+// Date range, used to filter nodes in the graph
+let startDate = "2024-12-10";
+let endDate = "2024-12-23";
+
+// Set of all edges (links), i.e. pairs of nodes in format "node1|node2"
+// Used to avoid duplicate edges
+// These are then used to make the graph.links
+let __links = new Set();
+
 // Load data
 let graph = { nodes: [], links: [] };
-let timeSlept;
+
+// let timeSlept; // TODO REMOVE
+
+// node_dates is a dictionary that maps node id to a list of dates
+// Important for efficient on click node information
+let __node_dates = {};
+// date_nodes is a dictionary that maps date to a list of nodes
+// Important for efficient filtering of nodes in the graph
+let __date_nodes = {};
+
+// Filtered by start and end date
+let node_dates = {};
+let date_nodes = {};
+
+// Frequency of each node
+let node_count = {};
+// day_stats is a dictionary date -> (mindState, timeSlept)
+let day_stats = {};
+
 
 loadData().then(() => {
     createGraph();
-    createHistogram();
+    // createHistogram();
 });
 
 async function loadData() {
-    await loadGraphData();
-    await loadTimeSleptData();
+    await loadNodes().then(() => {
+        filterNodes();
+    });
 
-    console.log(timeSlept);
+    await loadGraphData();
+
+    await loadDayStats();
 }
 
-function loadGraphData() {
-    return Promise.all([
-        d3.csv("nodes.csv"),
-        d3.csv("links.csv")
-    ]).then(([nodes, links]) => {
-        graph = {
-            nodes: nodes.map(d => ({ id: d.id })),
-            links: links.map(d => ({ source: d.source, target: d.target }))
-        };
+function loadNodes() {
+    return d3.csv("nodes.csv").then(data => {
+        for (let i = 0; i < data.length; i++) {
+            const date_node = data[i];
+            const date = date_node.date;
+            const node = date_node.word;
+
+            // Append date to node_dates
+            if (__node_dates[node] === undefined) {
+                __node_dates[node] = [];
+            }
+            __node_dates[node].push(date);
+
+            // Append node to date_nodes
+            if (__date_nodes[date] === undefined) {
+                __date_nodes[date] = [];
+            }
+            __date_nodes[date].push(node);
+
+            // Initialize node_count
+            node_count[node] = 0;
+        }
     });
 }
 
+function filterNodes() {
+    node_dates = {};
+    date_nodes = {};
+
+    let sDate = new Date(startDate);
+    let eDate = new Date(endDate);
+
+    for (let date in __date_nodes) {
+        let dDate = new Date(date);
+        // Filter dates
+        if (!(sDate <= dDate && dDate <= eDate)) {
+            continue;
+        }
+
+        // Add to date_nodes
+        date_nodes[date] = __date_nodes[date];
+
+        // Update node_dates
+        for (let i = 0; i < date_nodes[date].length; i++) {
+            const node = date_nodes[date][i];
+            if (node_dates[node] === undefined) {
+                node_dates[node] = [];
+            }
+            node_dates[node].push(date);
+        }
+    }
+}
+
+function loadGraphData() {
+    // Use node_dates
+    for (let date in date_nodes) {
+        // Push all nodes in date_nodes[date] to graph.nodes
+        for (let i = 0; i < date_nodes[date].length; i++) {
+            const node = date_nodes[date][i];
+            if (node_count[node] === 0) {
+                graph.nodes.push({ id: node });
+            }
+
+            // Add edges with other nodes in the same date
+            for (let j = 0; j < date_nodes[date].length; j++) {
+                if (i === j) {
+                    continue;
+                }
+                const otherNode = date_nodes[date][j];
+                const edge = `${node}|${otherNode}`;
+                const reverseEdge = `${otherNode}|${node}`;
+                if (!__links.has(edge) && !__links.has(reverseEdge)) {
+                    __links.add(edge);
+                    graph.links.push({ source: node, target: otherNode });
+                }
+            }
+
+            // Increment node count
+            node_count[node]++;
+        }
+
+    }
+}
+
 /* CSV file */
-function loadTimeSleptData() {
-    return d3.csv("timeSlept.csv").then(data => {
-        timeSlept = data.map(d => ({
-            date: d.date,
-            time: d.sleep
-        }));
+function loadDayStats() {
+    return d3.csv("day_stats.csv").then(data => {
+        for (let i = 0; i < data.length; i++) {
+            day_stats[data[i].date] = {
+                mindState: data[i].mindState,
+                timeSlept: data[i].sleep
+            };
+        }
     });
 }
 
@@ -77,7 +181,8 @@ function createGraph() {
     .data(graph.nodes)
     .enter()
     .append("circle")
-    .attr("r", 10)
+    // Node radius
+    .attr("r", d => node_count[d.id] * 1.2 + 10) // Set radius based on node count
     .attr("fill", "steelblue")
     .call(d3.drag() // Enable drag behavior
         .on("start", (event, d) => {
@@ -108,7 +213,7 @@ function createGraph() {
     .attr("text-anchor", "middle")
     .text(d => d.id)
     .attr("fill", "black")
-    .attr("font-size", "12px");
+    .attr("font-size", d => 12 + "px");
 
     // Update positions on each tick
     simulation.on("tick", () => {
@@ -146,7 +251,7 @@ function createHistogram() {
 
     // Set up x and y scales
     const x = d3.scaleLinear()
-        .domain([d3.min(timeSlept, d => +d.time), d3.max(timeSlept, d => +d.time)])
+        .domain([d3.min(day_stats, d => +d.time), d3.max(day_stats, d => +d.time)])
         .range([0, histogramWidth]);
 
     const y = d3.scaleLinear()
@@ -159,7 +264,7 @@ function createHistogram() {
         // Number of bins
         .thresholds(x.ticks(20));
 
-    const bins = histogram(timeSlept);
+    const bins = histogram(day_stats);
 
     // Update y scale domain
     y.domain([0, d3.max(bins, d => d.length)]);
