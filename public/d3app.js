@@ -10,6 +10,10 @@ const fontFamily = "Trebuchet MS";
 let startDate = "2024-12-10";
 let endDate = "2024-12-23";
 
+// Selected node, used to display information
+let previousNode = null;
+let selectedNode = null;
+
 // Set of all edges (links), i.e. pairs of nodes in format "node1|node2"
 // Used to avoid duplicate edges
 // These are then used to make the graph.links
@@ -184,6 +188,10 @@ function createGraph() {
     // Node radius
     .attr("r", d => node_count[d.id] * 1.2 + 10) // Set radius based on node count
     .attr("fill", "steelblue")
+    .on("click", (event, d) => {
+        previousNode = selectedNode;
+        selectedNode = d.id;
+    })
     .call(d3.drag() // Enable drag behavior
         .on("start", (event, d) => {
         if (!event.active) simulation.alphaTarget(0.3).restart();
