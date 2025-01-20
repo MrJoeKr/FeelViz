@@ -43,6 +43,7 @@ let day_stats = {};
 
 loadData().then(() => {
     createGraph();
+    createSelectedNodeText();
     // createHistogram();
 });
 
@@ -152,6 +153,35 @@ function loadDayStats() {
     });
 }
 
+// Create text area for selected node
+function createSelectedNodeText() {
+    d3.select("#selected-node-div").append("svg")
+    .attr("width", d3.select("#selected-node-div").node().clientWidth)
+    .attr("height", d3.select("#selected-node-div").node().clientHeight)
+
+    updateSelectedNodeText();
+}
+
+function updateSelectedNodeText() {
+    let text;
+    if (selectedNode === null) {
+        text = "No node selected.";
+    }
+    else {
+        text = "Selected Node: " + selectedNode.id + ". "
+            + "Node count: " + node_count[selectedNode.id] + ".";
+    }
+
+    d3.select("#selected-node-div svg").selectAll("*").remove();
+    d3.select("#selected-node-div svg").append("text")
+    .attr("x", 10)
+    .attr("y", 20)
+    .attr("fill", "white")
+    .attr("font-family", fontFamily)
+    .attr("font-size", "20px")
+    .text(text);
+}
+
 function createGraph() {
     // Create SVG container
     const svg = d3
@@ -189,8 +219,7 @@ function createGraph() {
     .attr("r", d => node_count[d.id] * 1.2 + 10) // Set radius based on node count
     .attr("fill", "steelblue")
     .on("click", (event, d) => {
-        previousNode = selectedNode;
-        selectedNode = d.id;
+        nodeClick(d);
     })
     .call(d3.drag() // Enable drag behavior
         .on("start", (event, d) => {
@@ -309,4 +338,13 @@ function createHistogram() {
     // Add y-axis
     svg.append("g")
         .call(d3.axisLeft(y));
+}
+
+function nodeClick(d) {
+    // Update selected node
+    previousNode = selectedNode;
+    selectedNode = d;
+
+    // Update node information
+    updateSelectedNodeText();
 }
