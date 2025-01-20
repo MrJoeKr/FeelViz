@@ -6,3 +6,4 @@ tmp_*
 data
 public/nodes.csv
 public/links.csv
+public/timeSlept.csv

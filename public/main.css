@@ -5,5 +5,10 @@ body {
 	color:#c0c0c0;
 }
 
+h1, h2 {
+    color: white;
+    font-family: "Trebuchet MS";
+}
+
 /* #graph-container {
 } */
