@@ -6,9 +6,13 @@ const height = screen.height;
 
 const fontFamily = "Trebuchet MS";
 
-// Date range, used to filter nodes in the graph
-let startDate = "2024-12-10";
-let endDate = "2024-12-23";
+// Maximum date range
+let minDate = "2024-12-10";
+let maxDate = "2024-12-23";
+
+// Selected date range, used for filtering nodes in the graph
+let selectedStartDate = new Date(minDate);
+let selectedEndDate = new Date(maxDate);
 
 // Selected node, used to display information
 let previousNode = null;
@@ -40,12 +44,27 @@ let node_count = {};
 // day_stats is a dictionary date -> (mindState, timeSlept)
 let day_stats = {};
 
+// D3 areas
+let graphArea;
 
 loadData().then(() => {
-    createGraph();
+    initAreas();
+    visualizeData();
+});
+
+function initAreas() {
+    // Clear all areas
+    graphArea = d3.select("#graph-div").append("svg")
+    .attr("width", d3.select("#graph-div").node().clientWidth)
+    .attr("height", d3.select("#graph-div").node().clientHeight);
+}
+
+function visualizeData() {
+    createTimeInterval();
+    makeGraph();
     createSelectedNodeText();
     // createHistogram();
-});
+}
 
 async function loadData() {
     await loadNodes().then(() => {
@@ -86,13 +105,10 @@ function filterNodes() {
     node_dates = {};
     date_nodes = {};
 
-    let sDate = new Date(startDate);
-    let eDate = new Date(endDate);
-
     for (let date in __date_nodes) {
         let dDate = new Date(date);
         // Filter dates
-        if (!(sDate <= dDate && dDate <= eDate)) {
+        if (!(selectedStartDate <= dDate && dDate <= selectedEndDate)) {
             continue;
         }
 
@@ -182,10 +198,13 @@ function updateSelectedNodeText() {
     .text(text);
 }
 
-function createGraph() {
-    // Create SVG container
-    const svg = d3
-    .select("#graph-container")
+function makeGraph() {
+    // Clear graph area
+    // TODO: Does not work
+    // graphArea.selectAll("*").remove();
+
+    graphArea = d3
+    .select("#graph-div")
     .append("svg")
     .attr("width", width)
     .attr("height", height);
@@ -197,7 +216,7 @@ function createGraph() {
     .force("center", d3.forceCenter(width / 2, height / 2));
 
     // Add links
-    const link = svg
+    const link = graphArea
     .append("g")
     .attr("class", "links")
     .selectAll("line")
@@ -208,7 +227,7 @@ function createGraph() {
     .attr("stroke-width", 2);
 
     // Add nodes
-    const node = svg
+    const node = graphArea
     .append("g")
     .attr("class", "nodes")
     .selectAll("circle")
@@ -239,7 +258,7 @@ function createGraph() {
     );
 
     // Add labels
-    const label = svg
+    const label = graphArea
     .append("g")
     .attr("class", "labels")
     .selectAll("text")
@@ -279,7 +298,7 @@ function createHistogram() {
 
     // Create SVG container for histogram
     const svg = d3
-        .select("#histogram-container")
+        .select("#histogram-div")
         .append("svg")
         .attr("width", histogramWidth + margin.left + margin.right)
         .attr("height", histogramHeight + margin.top + margin.bottom)
@@ -347,4 +366,118 @@ function nodeClick(d) {
 
     // Update node information
     updateSelectedNodeText();
+}
+
+function createTimeInterval() {
+    // Initialize SVG dimensions
+    const svgWidth = 800;
+    const svgHeight = 200;
+    const padding = 50;
+
+    // Create SVG
+    const timeIntervalArea = d3
+        .select("#time-interval-div")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+    // Define time scale
+    const minD = new Date(minDate);
+    const maxD = new Date(maxDate);
+
+    const xScale = d3.scaleTime()
+        .domain([minD, maxD])
+        .range([padding, svgWidth - padding]);
+
+    // Draw the base line
+    timeIntervalArea.append("line")
+        .attr("x1", xScale(minD))
+        .attr("y1", svgHeight / 2)
+        .attr("x2", xScale(maxD))
+        .attr("y2", svgHeight / 2)
+        .attr("stroke", "black")
+        .attr("stroke-width", 2);
+
+    // Add boundary labels
+    timeIntervalArea.append("text")
+        .attr("x", xScale(minD))
+        .attr("y", svgHeight / 2 - 20)
+        .attr("text-anchor", "middle")
+        .text(d3.timeFormat("%b %d, %Y")(minD));
+
+    timeIntervalArea.append("text")
+        .attr("x", xScale(maxD))
+        .attr("y", svgHeight / 2 - 20)
+        .attr("text-anchor", "middle")
+        .text(d3.timeFormat("%b %d, %Y")(maxD));
+
+    // Draggable points
+    const drag = d3.drag()
+        .on("drag", function(event, d) {
+            const newDate = xScale.invert(event.x);
+            d.date = newDate;
+            d3.select(this)
+                .attr("cx", xScale(newDate));
+
+            update();
+        })
+        .on("end", function(event, d) {
+            updateSelectedDate(d.date); // Call the event after dragging finishes
+        });
+
+    function update() {
+        // Update text for number of days
+        const dayDiff = Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
+        d3.select("#dayCount").text(`${dayDiff} days`);
+    }
+
+    // Start draggable circle
+    timeIntervalArea.append("circle")
+        .datum({ date: selectedStartDate })
+        .attr("cx", xScale(selectedStartDate))
+        .attr("cy", svgHeight / 2)
+        .attr("r", 8)
+        .attr("fill", "blue")
+        .call(drag);
+
+    // End draggable circle
+    timeIntervalArea.append("circle")
+        .datum({ date: selectedEndDate })
+        .attr("cx", xScale(selectedEndDate))
+        .attr("cy", svgHeight / 2)
+        .attr("r", 8)
+        .attr("fill", "red")
+        .call(drag);
+
+    // Add number of days text
+    timeIntervalArea.append("text")
+        .attr("id", "dayCount")
+        .attr("x", svgWidth / 2)
+        .attr("y", svgHeight / 2 - 40)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .text(() => {
+            const dayDiff = Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
+            return `${dayDiff} days`;
+        });
+}
+
+// Function to be triggered after dragging
+// Update the selected date
+function updateSelectedDate(date) {
+    console.log("Drag finished and myEvent() was triggered.");
+    console.log(date)
+
+    /* TODO:
+    - Update selected end date
+    - Filter nodes does not work
+    - Graph remake does not work
+    */
+
+    // Update selected start date
+    selectedStartDate = date;
+
+    // Filter nodes
+    filterNodes();
+    makeGraph();
 }
