@@ -114,7 +114,7 @@ function filterNodes() {
             }
             node_dates[node].push(date);
         }
-    }
+    } 
 
     loadGraphData();
 }
@@ -160,6 +160,13 @@ function loadGraphData() {
         }
 
     }
+
+    // Update selected node
+    if (selectedNode && node_dates[selectedNode.id] === undefined) {
+        selectedNode = null;
+    }
+
+    updateSelectedNodeText();
 }
 
 /* CSV file */
@@ -371,7 +378,7 @@ function nodeClick(d) {
 
 function createTimeInterval() {
     // Initialize SVG dimensions
-    const svgWidth = 800;
+    const svgWidth = 1000;
     const svgHeight = 200;
     const padding = 50;
 
@@ -532,7 +539,7 @@ function updateCircleDateLabel(id, date, xScale) {
 }
 
 // Function to be triggered after dragging
-// Update the selected date
+// Update the selected date and filter nodes
 function updateSelectedDate(circle) {
     if (circle.type === "start") {
         selectedStartDate = circle.date;
