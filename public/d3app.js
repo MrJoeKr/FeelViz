@@ -3,7 +3,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; //import D3
 const fontFamily = "Trebuchet MS";
 
 // Maximum date range
-let minDate = "2024-12-10";
+let minDate = "2024-11-01";
 // let minDate = "2024-12-22";
 let maxDate = "2024-12-23";
 
@@ -424,30 +424,53 @@ function createTimeInterval() {
         .attr("y", svgHeight / 2 - 20)
         .attr("text-anchor", "middle")
         .text(d3.timeFormat("%b %d, %Y")(maxD));
-
-    // Draggable points
+    
+    // Draggable points with snapping
     const drag = d3.drag()
         .on("drag", function(event, d) {
-            const newDate = xScale.invert(event.x);
-            d.date = newDate;
-            d3.select(this)
-                .attr("cx", xScale(newDate));
+            // Find the closest date to the current drag position
+            const mouseX = event.x;
+            const snappedDate = d3.least(dates, date =>
+                Math.abs(xScale(date) - mouseX)
+            );
 
-            update();
+            console.log("Snapped date: " + snappedDate);
+
+            // Start must be before end
+            if (d.type === "start" && snappedDate >= selectedEndDate) {
+                return;
+            } else if (d.type === "end" && snappedDate <= selectedStartDate) {
+                return;
+            }
+
+            // Update the dragged circle's position
+            d.date = snappedDate; // Update the data-bound date
+            d3.select(this)
+                .attr("cx", xScale(snappedDate)); // Snap to the closest discrete point
+            
+            // Update text and visuals
+            update(d);
         })
         .on("end", function(event, d) {
-            updateSelectedDate(d.date); // Call the event after dragging finishes
+            updateSelectedDate(d); // Trigger the update event when dragging ends
         });
 
-    function update() {
+    function update(circle) {
+        let dayDiff;
+        if (circle.type === "start") {
+            dayDiff = selectedEndDate - circle.date;
+        } else {
+            dayDiff = circle.date - selectedStartDate;
+        }
+
         // Update text for number of days
-        const dayDiff = Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
+        dayDiff = Math.ceil(dayDiff / (1000 * 60 * 60 * 24));
         d3.select("#dayCount").text(`${dayDiff} days`);
     }
 
     // Start draggable circle
     timeIntervalArea.append("circle")
-        .datum({ date: selectedStartDate })
+        .datum({ date: selectedStartDate, type: "start" })
         .attr("cx", xScale(selectedStartDate))
         .attr("cy", svgHeight / 2)
         .attr("r", 8)
@@ -456,7 +479,7 @@ function createTimeInterval() {
 
     // End draggable circle
     timeIntervalArea.append("circle")
-        .datum({ date: selectedEndDate })
+        .datum({ date: selectedEndDate, type: "end" })
         .attr("cx", xScale(selectedEndDate))
         .attr("cy", svgHeight / 2)
         .attr("r", 8)
@@ -478,21 +501,12 @@ function createTimeInterval() {
 
 // Function to be triggered after dragging
 // Update the selected date
-function updateSelectedDate(date) {
-    console.log("Drag finished and myEvent() was triggered.");
-    console.log(date)
-
-    /* TODO:
-    - Update selected end date
-    - Filter nodes does not work
-    - Graph remake does not work
-    */
-
-    // Update selected start date
-    selectedStartDate = date;
-
-    console.log("Selected start date: " + selectedStartDate);
-    console.log("Selected end date: " + selectedEndDate);
+function updateSelectedDate(circle) {
+    if (circle.type === "start") {
+        selectedStartDate = circle.date;
+    } else {
+        selectedEndDate = circle.date;
+    }
 
     // Filter nodes
     filterNodes();
