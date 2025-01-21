@@ -371,8 +371,8 @@ function nodeClick(d) {
 
 function createTimeInterval() {
     // Initialize SVG dimensions
-    const svgWidth = 600;
-    const svgHeight = 150;
+    const svgWidth = 800;
+    const svgHeight = 200;
     const padding = 50;
 
     // Create SVG
@@ -392,12 +392,25 @@ function createTimeInterval() {
 
     // Draw the base line
     timeIntervalArea.append("line")
-        .attr("x1", xScale(minD))
-        .attr("y1", svgHeight / 2)
-        .attr("x2", xScale(maxD))
-        .attr("y2", svgHeight / 2)
-        .attr("stroke", "black")
-        .attr("stroke-width", 2);
+        .append("line")
+            .attr("x1", xScale(minD))
+            .attr("y1", svgHeight / 2)
+            .attr("x2", xScale(maxD))
+            .attr("y2", svgHeight / 2)
+            .attr("stroke", "black")
+            .attr("stroke-width", 2);
+
+    // Add discrete points on the line
+    const dates = d3.timeDays(minD, maxD);
+    timeIntervalArea.selectAll("circle.point")
+        .data(dates)
+        .enter()
+        .append("circle")
+        .attr("class", "point")
+        .attr("cx", d => xScale(d))
+        .attr("cy", svgHeight / 2)
+        .attr("r", 3)
+        .attr("fill", "black");
 
     // Add boundary labels
     timeIntervalArea.append("text")
