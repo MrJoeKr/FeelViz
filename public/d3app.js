@@ -3,7 +3,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; //import D3
 const fontFamily = "Trebuchet MS";
 
 // Maximum date range
-let minDate = "2024-11-01";
+let minDate = "2024-10-10";
 // let minDate = "2024-12-22";
 let maxDate = "2024-12-23";
 
@@ -43,6 +43,10 @@ let day_stats = {};
 
 // D3 areas
 let graphArea;
+let histogramArea;
+
+const histogramMargin = { top: 20, right: 30, bottom: 40, left: 40 };
+
 
 loadData().then(() => {
     initAreas();
@@ -53,14 +57,24 @@ function initAreas() {
     // Clear all areas
     graphArea = d3.select("#graph-div").append("svg")
     .attr("width", d3.select("#graph-div").node().clientWidth)
-    .attr("height", d3.select("#graph-div").node().clientHeight);
+    .attr("height", d3.select("#graph-div").node().clientHeight)
+
+    initHistogramArea();
+}
+
+function initHistogramArea() {
+    histogramArea = d3.select("#histogram-div").append("svg")
+    .attr("width", d3.select("#histogram-div").node().clientWidth)
+    .attr("height", d3.select("#histogram-div").node().clientHeight)
+    .append("g")
+    .attr("transform", `translate(${histogramMargin.left},${histogramMargin.top})`);
 }
 
 function visualizeData() {
     createTimeInterval();
     makeGraph();
     createSelectedNodeText();
-    // createHistogram();
+    drawHistogram();
 }
 
 async function loadData() {
@@ -297,74 +311,77 @@ function makeGraph() {
     });
 }
 
-// Histogram for time slept
-function createHistogram() {
+function drawHistogram() {
     // Set up dimensions and margins
-    const margin = { top: 30, right: 30, bottom: 40, left: 40 };
-    const histogramWidth = 600 - margin.left - margin.right;
-    const histogramHeight = 300 - margin.top - margin.bottom;
+    const histogramWidth = d3.select("#histogram-div")
+        .node().clientWidth - histogramMargin.left - histogramMargin.right;
+    const histogramHeight = d3.select("#histogram-div")
+        .node().clientHeight - histogramMargin.top - histogramMargin.bottom;
 
-    // Create SVG container for histogram
-    const svg = d3
-        .select("#histogram-div")
-        .append("svg")
-        .attr("width", histogramWidth + margin.left + margin.right)
-        .attr("height", histogramHeight + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+    // Clear histogram area 
+    histogramArea.selectAll("*").remove();
 
-    // Set up x and y scales
+    // Prepare data and set scales
+    const timeSleptValues = Object.values(day_stats).map(d => +d.timeSlept);
     const x = d3.scaleLinear()
-        .domain([d3.min(day_stats, d => +d.time), d3.max(day_stats, d => +d.time)])
+        .domain([d3.min(timeSleptValues) - 0.3, d3.max(timeSleptValues) + 0.3])
         .range([0, histogramWidth]);
 
-    const y = d3.scaleLinear()
-        .range([histogramHeight, 0]);
-
-    // Create histogram bins
     const histogram = d3.histogram()
-        .value(d => +d.time)
+        .value(d => d) // TimeSlept values already processed
         .domain(x.domain())
-        // Number of bins
         .thresholds(x.ticks(20));
 
-    const bins = histogram(day_stats);
+    const bins = histogram(timeSleptValues);
 
-    // Update y scale domain
-    y.domain([0, d3.max(bins, d => d.length)]);
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)]) // Max bin count
+        .range([histogramHeight, 0]);
 
     // Append bars to the histogram
-    svg.selectAll("rect")
+    histogramArea.selectAll("rect")
         .data(bins)
         .enter()
         .append("rect")
-        .attr("x", 1)
-        .attr("transform", d => `translate(${x(d.x0)},${y(d.length)})`)
-        .attr("width", d => x(d.x1) - x(d.x0) - 1)
-        .attr("height", 0)
+        .attr("x", d => x(d.x0) + 1) // Bar starting position
+        .attr("y", histogramHeight) // Start from bottom
+        .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)) // Handle thin bars
+        .attr("height", 0) // Start with height 0
         .style("fill", "#69b3a2")
-        // Add transition
-        // TODO: GOES FROM TOP TO BOTTOM, NOT BOTTOM TO TOP
-        // .transition()
-        // .duration(1000)
-        .attr("height", d => histogramHeight - y(d.length))
-        .attr("y", d => y(d.length));
+        .transition()
+        .duration(1000)
+        .attr("y", d => y(d.length)) // Transition to final height
+        .attr("height", d => histogramHeight - y(d.length)); // Transition height
 
     // Add x-axis
-    svg.append("g")
-        .attr("transform", `translate(0,${histogramHeight})`)
-        .call(d3.axisBottom(x))
-        .append("text")
-        .attr("y", 30)
+    histogramArea.append("g")
+        .attr("transform", `translate(0,${histogramHeight})`) // Place at the bottom
+        .call(d3.axisBottom(x));
+
+    // Add x-axis label
+    histogramArea.append("text")
         .attr("x", histogramWidth / 2)
+        .attr("y", histogramHeight + histogramMargin.bottom - 2) // Below the axis
         .attr("text-anchor", "middle")
         .attr("fill", "white")
+        .attr("font-family", fontFamily)
+        .attr("font-size", "14px")
         .text("Time Slept (hours)")
-        .style("font-family", fontFamily);
 
     // Add y-axis
-    svg.append("g")
+    histogramArea.append("g")
         .call(d3.axisLeft(y));
+    
+    // Add y-axis label
+    histogramArea.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -histogramMargin.left + 10) // Above the axis
+        .attr("x", -histogramHeight / 2)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-family", fontFamily)
+        .attr("font-size", "14px")
+        .text("Frequency");
 }
 
 function nodeClick(d) {
