@@ -44,10 +44,20 @@ let day_stats = {};
 // D3 areas
 let graphArea;
 let histogramArea;
-let piechartArea;
+let pieChartArea;
 
 const histogramMargin = { top: 20, right: 30, bottom: 40, left: 40 };
 
+// MindState to word mapping
+const MINDSTATE_NUMS = {
+    "-3": { "name": "Very Unpleasant", "color": "#6149A8" },
+    "-2": { "name": "Unpleasant", "color": "#809DD8" },
+    "-1": { "name": "Slightly Unpleasant", "color": "#7899C5" },
+     "0": { "name": "Neutral", "color": "#89B8B4" },
+     "1": { "name": "Slightly Pleasant", "color": "#B9C85A" },
+     "2": { "name": "Pleasant", "color": "#C7BD46" },
+     "3": { "name": "Very Pleasant", "color": "#EB8F31" }
+};
 
 loadData().then(() => {
     initAreas();
@@ -73,9 +83,14 @@ function initHistogramArea() {
 }
 
 function initPieChartArea() {
-    piechartArea = d3.select("#piechart-div").append("svg")
-    .attr("width", d3.select("#piechart-div").node().clientWidth)
-    .attr("height", d3.select("#piechart-div").node().clientHeight)
+    const width = d3.select("#piechart-div").node().clientWidth;
+    const height = d3.select("#piechart-div").node().clientHeight;
+
+    pieChartArea = d3.select("#piechart-div").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr('transform', `translate(${width / 2}, ${height / 2})`);
 }
 
 function visualizeData() {
@@ -83,6 +98,7 @@ function visualizeData() {
     makeGraph();
     createSelectedNodeText();
     drawHistogram();
+    drawPieChart();
 }
 
 async function loadData() {
@@ -425,58 +441,131 @@ function drawHistogram() {
         .attr("height", d => histogramHeight - y(d.length)); // Transition height
 }
 
+// Return a counter of mindState -> frequency in the selected date range
+function getMindStateValues() {
+    let mindStateValues = {};
+    if (selectedNode === null) {
+        // Select all times from start to end date from day_stats
+        // Loop through all dates in [selectedStartDate, selectedEndDate]
+        for (let date = new Date(selectedStartDate); 
+                date <= selectedEndDate; date.setDate(date.getDate() + 1)) {
+
+            // Transform date to string in format "YYYY-MM-DD"
+            const dateString = date.toISOString().split('T')[0];
+
+            // Check if date exists in day_stats
+            if (day_stats[dateString] !== undefined) {
+                const mindState = day_stats[dateString].mindState;
+                // Add to mindStateValues
+                if (mindStateValues[mindState] === undefined) {
+                    mindStateValues[mindState] = 0;
+                }
+                mindStateValues[mindState]++;
+            }
+        }
+    } else {
+        // Select times from selected node
+        for (let i = 0; i < node_dates[selectedNode.id].length; i++) {
+            const date = node_dates[selectedNode.id][i];
+            const dDate = new Date(date);
+            if (selectedStartDate <= dDate && dDate <= selectedEndDate) {
+                const mindState = day_stats[date].mindState;
+                // Add to mindStateValues
+                if (mindStateValues[mindState] === undefined) {
+                    mindStateValues[mindState] = 0;
+                }
+                mindStateValues[mindState]++;
+            }
+        }
+    }
+
+    // Make into an array of objects
+    // with key "category" and value "value"
+    mindStateValues = Object.keys(mindStateValues).map(key => {
+        return { 
+            category: MINDSTATE_NUMS[key].name,
+            value: mindStateValues[key],
+            color: MINDSTATE_NUMS[key].color
+        };
+    });
+
+    return mindStateValues;
+}
+
 function drawPieChart() {
     // Clear pie chart area
-    piechartArea.selectAll("*").remove();
+    pieChartArea.selectAll("*").remove();
 
     // Data for the pie chart
-    const data = [
-        { category: 'A', value: 30 },
-        { category: 'B', value: 70 },
-        { category: 'C', value: 45 },
-        { category: 'D', value: 65 },
-        { category: 'E', value: 20 }
-    ];
+    const mindStateData = getMindStateValues();
 
     // Chart dimensions
-    const width = 500;
-    const height = 500;
+    const width = d3.select("#piechart-div").node().clientWidth;
+    const height = d3.select("#piechart-div").node().clientHeight;
     const radius = Math.min(width, height) / 2;
-    // Create an SVG container
-    const svg = d3.select("#piechart-div")
-        .attr('width', width)
-        .attr('height', height)
-        .append('g')
-        .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
     // Create a color scale
+    // TODO: USE Color according to data.color
     const color = d3.scaleOrdinal()
-        .domain(data.map(d => d.category))
+        .domain(mindStateData.map(d => d.category))
         .range(d3.schemeCategory10);
     // Create the pie generator
     const pie = d3.pie()
         .value(d => d.value);
     // Create the arc generator
     const arc = d3.arc()
-        .innerRadius(0) // For a pie chart (0 for no hole, >0 for a donut chart)
+        .innerRadius(90) // For a hole in the middle
         .outerRadius(radius);
+
     // Bind data to pie slices
-    const slices = svg.selectAll('path')
-        .data(pie(data))
+    const slices = pieChartArea.selectAll('path')
+        .data(pie(mindStateData))
         .enter()
         .append('path')
         .attr('d', arc)
         .attr('fill', d => color(d.data.category))
         .attr('stroke', 'white')
         .style('stroke-width', '2px');
+
     // Add labels to slices
-    svg.selectAll('text')
-        .data(pie(data))
+    pieChartArea.selectAll('text')
+        .data(pie(mindStateData))
         .enter()
         .append('text')
         .attr('transform', d => `translate(${arc.centroid(d)})`)
         .text(d => d.data.category)
         .style('font-size', '12px')
         .style('fill', 'white');
+    
+    // Add mouseover and mouseout effects
+    slices.on('mouseover', function (event, d) {
+        d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('transform', 'scale(1.1)');
+    })
+    .on('mouseout', function (event, d) {
+        d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('transform', 'scale(1)');
+    });
+
+    // Create a tooltip
+    const tooltip = d3.select('body').append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0);
+
+    // Show tooltip on hover
+    // slices.on('mouseover', function (event, d) {
+    //     tooltip.transition().duration(200).style('opacity', 1);
+    //     tooltip.html(`Category: ${d.data.category}<br>Value: ${d.data.value}`)
+    //         .style('left', (event.pageX + 10) + 'px')
+    //         .style('top', (event.pageY - 20) + 'px');
+    // })
+    // .on('mouseout', function () {
+    //     tooltip.transition().duration(200).style('opacity', 0);
+    // });
 }
 
 
@@ -680,5 +769,5 @@ function updateAfterDateChange() {
 
 function updateHistogramPieChart() {
     drawHistogram();
-    // TODO: Add pie chart
+    drawPieChart();
 }
