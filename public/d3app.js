@@ -434,8 +434,6 @@ function createTimeInterval() {
                 Math.abs(xScale(date) - mouseX)
             );
 
-            console.log("Snapped date: " + snappedDate);
-
             // Start must be before end
             if (d.type === "start" && snappedDate >= selectedEndDate) {
                 return;
@@ -459,8 +457,10 @@ function createTimeInterval() {
         let dayDiff;
         if (circle.type === "start") {
             dayDiff = selectedEndDate - circle.date;
+            updateCircleDateLabel("#start-date-label", circle.date, xScale);
         } else {
             dayDiff = circle.date - selectedStartDate;
+            updateCircleDateLabel("#end-date-label", circle.date, xScale);
         }
 
         // Update text for number of days
@@ -477,6 +477,20 @@ function createTimeInterval() {
         .attr("fill", "blue")
         .call(drag);
 
+    // Add text for start date
+    const dateLabelMargin = 30;
+    timeIntervalArea.append("text")
+        .datum({ date: selectedStartDate, type: "start" }) // Match the circle's data
+        .attr("id", "start-date-label")
+        .attr("x", xScale(selectedStartDate))
+        .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
+        .attr("text-anchor", "middle")
+        .attr("font-size", "13px")
+        .attr("font-family", fontFamily)
+        .attr("fill", "white")
+        .text(d3.timeFormat("%d %b")(selectedStartDate)); // Format as "21 Dec"
+
+
     // End draggable circle
     timeIntervalArea.append("circle")
         .datum({ date: selectedEndDate, type: "end" })
@@ -485,6 +499,18 @@ function createTimeInterval() {
         .attr("r", 8)
         .attr("fill", "red")
         .call(drag);
+
+    // Add text for end date
+    timeIntervalArea.append("text")
+        .datum({ date: selectedEndDate, type: "end" }) // Match the circle's data
+        .attr("id", "end-date-label")
+        .attr("x", xScale(selectedEndDate))
+        .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
+        .attr("text-anchor", "middle")
+        .attr("font-size", "13px")
+        .attr("font-family", fontFamily)
+        .attr("fill", "white")
+        .text(d3.timeFormat("%d %b")(selectedEndDate)); // Format as "21 Dec"
 
     // Add number of days text
     timeIntervalArea.append("text")
@@ -497,6 +523,12 @@ function createTimeInterval() {
             const dayDiff = Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
             return `${dayDiff} days`;
         });
+}
+
+function updateCircleDateLabel(id, date, xScale) {
+    d3.select(id)
+        .attr("x", xScale(date))
+        .text(d3.timeFormat("%d %b")(date));
 }
 
 // Function to be triggered after dragging
