@@ -3,8 +3,8 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; //import D3
 const fontFamily = "Trebuchet MS";
 
 // Maximum date range
-let minDate = "2024-10-10";
-// let minDate = "2024-12-22";
+// let minDate = "2024-10-10";
+let minDate = "2024-12-10";
 let maxDate = "2024-12-23";
 
 // Selected date range, used for filtering nodes in the graph
@@ -281,17 +281,17 @@ function makeGraph() {
 
     // Add labels
     const label = graphArea
-    .append("g")
-    .attr("class", "labels")
-    .selectAll("text")
-    .data(graph.nodes)
-    .enter()
-    .append("text")
-    .attr("dy", -15)
-    .attr("text-anchor", "middle")
-    .text(d => d.id)
-    .attr("fill", "black")
-    .attr("font-size", d => 12 + "px");
+        .append("g")
+        .attr("class", "labels")
+        .selectAll("text")
+        .data(graph.nodes)
+        .enter()
+        .append("text")
+        .attr("dy", -15)
+        .attr("text-anchor", "middle")
+        .text(d => d.id)
+        .attr("fill", "black")
+        .attr("font-size", d => 12 + "px");
 
     // Update positions on each tick
     simulation.on("tick", () => {
@@ -362,7 +362,8 @@ function drawHistogram() {
     const bins = histogram(timeSleptValues);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(bins, d => d.length)]) // Max bin count
+        // .domain([0, d3.max(bins, d => d.length)]) // Max bin count
+        .domain([0, getSelectedDatesDiff()]) // Max bin count
         .range([histogramHeight, 0]);
 
     // Append bars to the histogram
@@ -418,6 +419,7 @@ function nodeClick(d) {
 
     // Update node information
     updateSelectedNodeText();
+    updateHistogramPieChart();
 }
 
 function createTimeInterval() {
@@ -571,9 +573,13 @@ function createTimeInterval() {
         .attr("text-anchor", "middle")
         .attr("font-size", "14px")
         .text(() => {
-            const dayDiff = Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
+            const dayDiff = getSelectedDatesDiff();
             return `${dayDiff} days`;
         });
+}
+
+function getSelectedDatesDiff() {
+    return Math.ceil((selectedEndDate - selectedStartDate) / (1000 * 60 * 60 * 24));
 }
 
 function updateCircleDateLabel(id, date, xScale) {
@@ -591,7 +597,20 @@ function updateSelectedDate(circle) {
         selectedEndDate = circle.date;
     }
 
+    updateAfterDateChange();
+}
+
+function updateAfterDateChange() {
     // Filter nodes
     filterNodes();
+
+    // Update graph
     makeGraph();
+
+    updateHistogramPieChart();
+}
+
+function updateHistogramPieChart() {
+    drawHistogram();
+    // TODO: Add pie chart
 }
