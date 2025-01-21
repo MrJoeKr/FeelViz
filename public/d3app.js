@@ -1,9 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; //import D3
 
-// d3-force-graph.js
-const width = screen.width;
-const height = screen.height;
-
 const fontFamily = "Trebuchet MS";
 
 // Maximum date range
@@ -200,20 +196,16 @@ function updateSelectedNodeText() {
 
 function makeGraph() {
     // Clear graph area
-    // TODO: Does not work
-    // graphArea.selectAll("*").remove();
+    graphArea.selectAll("*").remove();
 
-    graphArea = d3
-    .select("#graph-div")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
+    const graphWidth = d3.select("#graph-div").node().clientWidth;
+    const graphHeight = d3.select("#graph-div").node().clientHeight;
 
     // Define the simulation
     const simulation = d3.forceSimulation(graph.nodes)
     .force("link", d3.forceLink(graph.links).id(d => d.id).distance(60))
     .force("charge", d3.forceManyBody().strength(-150))
-    .force("center", d3.forceCenter(width / 2, height / 2));
+    .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
 
     // Add links
     const link = graphArea
