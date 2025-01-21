@@ -44,6 +44,7 @@ let day_stats = {};
 // D3 areas
 let graphArea;
 let histogramArea;
+let piechartArea;
 
 const histogramMargin = { top: 20, right: 30, bottom: 40, left: 40 };
 
@@ -60,6 +61,7 @@ function initAreas() {
     .attr("height", d3.select("#graph-div").node().clientHeight)
 
     initHistogramArea();
+    initPieChartArea();
 }
 
 function initHistogramArea() {
@@ -68,6 +70,12 @@ function initHistogramArea() {
     .attr("height", d3.select("#histogram-div").node().clientHeight)
     .append("g")
     .attr("transform", `translate(${histogramMargin.left},${histogramMargin.top})`);
+}
+
+function initPieChartArea() {
+    piechartArea = d3.select("#piechart-div").append("svg")
+    .attr("width", d3.select("#piechart-div").node().clientWidth)
+    .attr("height", d3.select("#piechart-div").node().clientHeight)
 }
 
 function visualizeData() {
@@ -366,21 +374,6 @@ function drawHistogram() {
         .domain([0, getSelectedDatesDiff()]) // Max bin count
         .range([histogramHeight, 0]);
 
-    // Append bars to the histogram
-    histogramArea.selectAll("rect")
-        .data(bins)
-        .enter()
-        .append("rect")
-        .attr("x", d => x(d.x0) + 1) // Bar starting position
-        .attr("y", histogramHeight) // Start from bottom
-        .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)) // Handle thin bars
-        .attr("height", 0) // Start with height 0
-        .style("fill", "#69b3a2")
-        .transition()
-        .duration(1000)
-        .attr("y", d => y(d.length)) // Transition to final height
-        .attr("height", d => histogramHeight - y(d.length)); // Transition height
-
     // Add x-axis
     histogramArea.append("g")
         .attr("transform", `translate(0,${histogramHeight})`) // Place at the bottom
@@ -410,7 +403,82 @@ function drawHistogram() {
         .attr("font-family", fontFamily)
         .attr("font-size", "14px")
         .text("Frequency");
+
+    // Do not draw if no data
+    if (timeSleptValues.length === 0) {
+        return;
+    }
+
+    // Append bars to the histogram
+    histogramArea.selectAll("rect")
+        .data(bins)
+        .enter()
+        .append("rect")
+        .attr("x", d => x(d.x0) + 1) // Bar starting position
+        .attr("y", histogramHeight) // Start from bottom
+        .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1)) // Handle thin bars
+        .attr("height", 0) // Start with height 0
+        .style("fill", "#69b3a2")
+        .transition()
+        .duration(1000)
+        .attr("y", d => y(d.length)) // Transition to final height
+        .attr("height", d => histogramHeight - y(d.length)); // Transition height
 }
+
+function drawPieChart() {
+    // Clear pie chart area
+    piechartArea.selectAll("*").remove();
+
+    // Data for the pie chart
+    const data = [
+        { category: 'A', value: 30 },
+        { category: 'B', value: 70 },
+        { category: 'C', value: 45 },
+        { category: 'D', value: 65 },
+        { category: 'E', value: 20 }
+    ];
+
+    // Chart dimensions
+    const width = 500;
+    const height = 500;
+    const radius = Math.min(width, height) / 2;
+    // Create an SVG container
+    const svg = d3.select("#piechart-div")
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${width / 2}, ${height / 2})`);
+    // Create a color scale
+    const color = d3.scaleOrdinal()
+        .domain(data.map(d => d.category))
+        .range(d3.schemeCategory10);
+    // Create the pie generator
+    const pie = d3.pie()
+        .value(d => d.value);
+    // Create the arc generator
+    const arc = d3.arc()
+        .innerRadius(0) // For a pie chart (0 for no hole, >0 for a donut chart)
+        .outerRadius(radius);
+    // Bind data to pie slices
+    const slices = svg.selectAll('path')
+        .data(pie(data))
+        .enter()
+        .append('path')
+        .attr('d', arc)
+        .attr('fill', d => color(d.data.category))
+        .attr('stroke', 'white')
+        .style('stroke-width', '2px');
+    // Add labels to slices
+    svg.selectAll('text')
+        .data(pie(data))
+        .enter()
+        .append('text')
+        .attr('transform', d => `translate(${arc.centroid(d)})`)
+        .text(d => d.data.category)
+        .style('font-size', '12px')
+        .style('fill', 'white');
+}
+
 
 function nodeClick(d) {
     // Update selected node
