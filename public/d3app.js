@@ -4,6 +4,7 @@ const fontFamily = "Trebuchet MS";
 
 // Maximum date range
 let minDate = "2024-12-10";
+// let minDate = "2024-12-22";
 let maxDate = "2024-12-23";
 
 // Selected date range, used for filtering nodes in the graph
@@ -66,9 +67,6 @@ async function loadData() {
     await loadNodes().then(() => {
         filterNodes();
     });
-
-    await loadGraphData();
-
     await loadDayStats();
 }
 
@@ -90,9 +88,6 @@ function loadNodes() {
                 __date_nodes[date] = [];
             }
             __date_nodes[date].push(node);
-
-            // Initialize node_count
-            node_count[node] = 0;
         }
     });
 }
@@ -120,16 +115,30 @@ function filterNodes() {
             node_dates[node].push(date);
         }
     }
+
+    loadGraphData();
 }
 
+// Load nodes and edges
 function loadGraphData() {
+    // Clear graph
+    graph.nodes = [];
+    graph.links = [];
+    __links = new Set();
+
+    // Clear node count
+    node_count = {};
+
     // Use node_dates
     for (let date in date_nodes) {
         // Push all nodes in date_nodes[date] to graph.nodes
         for (let i = 0; i < date_nodes[date].length; i++) {
             const node = date_nodes[date][i];
-            if (node_count[node] === 0) {
+
+            // Add node if not already in graph.nodes
+            if (node_count[node] === undefined) {
                 graph.nodes.push({ id: node });
+                node_count[node] = 0;
             }
 
             // Add edges with other nodes in the same date
@@ -362,8 +371,8 @@ function nodeClick(d) {
 
 function createTimeInterval() {
     // Initialize SVG dimensions
-    const svgWidth = 800;
-    const svgHeight = 200;
+    const svgWidth = 600;
+    const svgHeight = 150;
     const padding = 50;
 
     // Create SVG
@@ -468,6 +477,9 @@ function updateSelectedDate(date) {
 
     // Update selected start date
     selectedStartDate = date;
+
+    console.log("Selected start date: " + selectedStartDate);
+    console.log("Selected end date: " + selectedEndDate);
 
     // Filter nodes
     filterNodes();
