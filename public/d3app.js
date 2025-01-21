@@ -311,6 +311,33 @@ function makeGraph() {
     });
 }
 
+// Select timeSlept values according to the selected date range
+// and selected node
+// Return an array of timeSlept values
+function selectTimeSleptValues() {
+    let timeSleptValues = [];
+    if (selectedNode === null) {
+        // Select all times from start to end date
+        for (let date in date_nodes) {
+            const dDate = new Date(date);
+            if (selectedStartDate <= dDate && dDate <= selectedEndDate) {
+                timeSleptValues.push(parseFloat(day_stats[date].timeSlept));
+            }
+        }
+    } else {
+        // Select times from selected node
+        for (let i = 0; i < node_dates[selectedNode.id].length; i++) {
+            const date = node_dates[selectedNode.id][i];
+            const dDate = new Date(date);
+            if (selectedStartDate <= dDate && dDate <= selectedEndDate) {
+                timeSleptValues.push(parseFloat(day_stats[date].timeSlept, 10));
+            }
+        }
+    }
+
+    return timeSleptValues;
+}
+
 function drawHistogram() {
     // Set up dimensions and margins
     const histogramWidth = d3.select("#histogram-div")
@@ -322,7 +349,7 @@ function drawHistogram() {
     histogramArea.selectAll("*").remove();
 
     // Prepare data and set scales
-    const timeSleptValues = Object.values(day_stats).map(d => +d.timeSlept);
+    const timeSleptValues = selectTimeSleptValues();
     const x = d3.scaleLinear()
         .domain([d3.min(timeSleptValues) - 0.3, d3.max(timeSleptValues) + 0.3])
         .range([0, histogramWidth]);
