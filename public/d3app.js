@@ -35,6 +35,8 @@ let __date_nodes = {};
 // Filtered by start and end date
 let node_dates = {};
 let date_nodes = {};
+// node -> color. The most common mindState color of the node
+let node_color = {}
 
 // Frequency of each node
 let node_count = {};
@@ -102,10 +104,10 @@ function visualizeData() {
 }
 
 async function loadData() {
+    await loadDayStats();
     await loadNodes().then(() => {
         filterNodes();
     });
-    await loadDayStats();
 }
 
 function loadNodes() {
@@ -205,6 +207,52 @@ function loadGraphData() {
     }
 
     updateSelectedNodeText();
+
+    // Update colors of the nodes
+    updateNodeColors();
+}
+
+function updateNodeColors() {
+    // Counter of mindStates for each node
+    // node -> { mindState -> frequency }
+    let node_mindStates = {};
+    // Reset all node colors
+    node_color = {};
+
+    console.log(day_stats);
+
+    // Loop through all nodes
+    for (let node in node_dates) {
+        // Initialize mindState counter
+        node_mindStates[node] = {};
+        for (let key in MINDSTATE_NUMS) {
+            node_mindStates[node][key] = 0;
+        }
+
+        // Loop through all dates
+        for (let i = 0; i < node_dates[node].length; i++) {
+            const date = node_dates[node][i];
+            const mindState = day_stats[date].mindState;
+            // Increment mindState counter
+            node_mindStates[node][mindState]++;
+        }
+
+        // Get the most common mindState
+        let maxMindState = "-3";
+        for (let key in MINDSTATE_NUMS) {
+            if (node_mindStates[node][key] > node_mindStates[node][maxMindState]) {
+                maxMindState = key;
+            }
+        }
+
+        if (maxMindState === "-3") {
+            console.log("Error: maxMindState is -3");
+        }
+
+        // Set the color of the node
+        const color = MINDSTATE_NUMS[maxMindState].color;
+        node_color[node] = color;
+    }
 }
 
 /* CSV file */
@@ -282,7 +330,7 @@ function makeGraph() {
     .append("circle")
     // Node radius
     .attr("r", d => node_count[d.id] * 1.2 + 10) // Set radius based on node count
-    .attr("fill", "steelblue")
+    .attr("fill", d => node_color[d.id])
     .on("click", (event, d) => {
         nodeClick(d);
     })
@@ -499,9 +547,14 @@ function drawPieChart() {
     // Data for the pie chart
     const mindStateData = getMindStateValues();
 
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+
     // Chart dimensions
-    const width = d3.select("#piechart-div").node().clientWidth;
-    const height = d3.select("#piechart-div").node().clientHeight;
+    const width = d3.select("#piechart-div")
+        .node().clientWidth - margin.left - margin.right;
+    const height = d3.select("#piechart-div")
+        .node().clientHeight - margin.top - margin.bottom;
+
     const radius = Math.min(width, height) / 2;
 
     // Create the pie generator
@@ -540,7 +593,7 @@ function drawPieChart() {
             tooltip.html(`Category: ${d.data.category}<br>Value: ${d.data.value}`)
                 .style('left', (event.pageX + 10) + 'px')
                 .style('top', (event.pageY - 20) + 'px');
-            d3.select(this).transition().duration(200).attr('transform', 'scale(1.1)');
+            d3.select(this).transition().duration(200).attr('transform', 'scale(1.08)');
         })
         .on('mouseout', function () {
             // Tooltip hide logic
