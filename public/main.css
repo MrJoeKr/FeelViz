@@ -11,7 +11,7 @@ h1, h2 {
 }
 
 #graph-div {
-    width: 800px;
+    width: 1000px;
     height: 400px;
     padding: 20px;
     border: 3px solid black;
@@ -31,14 +31,12 @@ h1, h2 {
 }
 
 #histogram-div {
-    width: 500px;
+    width: 250px;
     height: 300px;
     margin-left: 30px;
 }
 
 #piechart-div {
-    width: 700px;
-    height: 500px;
-    margin-left: 30px;
-    margin-top: 50px;
+    width: 250px;
+    height: 300px;
 }
