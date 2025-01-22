@@ -36,7 +36,9 @@ let __date_nodes = {};
 let node_dates = {};
 let date_nodes = {};
 // node -> color. The most common mindState color of the node
-let node_color = {}
+let node_color = {};
+// node -> d3.symbol shape
+let node_shape = {};
 
 // Frequency of each node
 let node_count = {};
@@ -97,7 +99,7 @@ function initPieChartArea() {
 
 function visualizeData() {
     createTimeInterval();
-    makeGraph();
+    drawGraph();
     createSelectedNodeText();
     drawHistogram();
     drawPieChart();
@@ -128,6 +130,19 @@ function loadNodes() {
                 __date_nodes[date] = [];
             }
             __date_nodes[date].push(node);
+
+            // Add shape to node_shape
+            const type = date_node.type;
+
+            if (type === "association") {
+                node_shape[node] = d3.symbolStar;
+            } else if (type === "context") {
+                node_shape[node] = d3.symbolCircle;
+            } else if (type === "description") {
+                node_shape[node] = d3.symbolSquare;
+            } else {
+                console.log("Error: unknown node type: " + type);
+            }
         }
     });
 }
@@ -209,17 +224,15 @@ function loadGraphData() {
     updateSelectedNodeText();
 
     // Update colors of the nodes
-    updateNodeColors();
+    setNodeColors();
 }
 
-function updateNodeColors() {
+function setNodeColors() {
     // Counter of mindStates for each node
     // node -> { mindState -> frequency }
     let node_mindStates = {};
     // Reset all node colors
     node_color = {};
-
-    console.log(day_stats);
 
     // Loop through all nodes
     for (let node in node_dates) {
@@ -284,7 +297,7 @@ function updateSelectedNodeText() {
     else {
         text = "Selected Node: " + selectedNode.id + ". "
             + "Node count: " + node_count[selectedNode.id] + ".";
-    }
+    } // TODO: add out of X days
 
     d3.select("#selected-node-div svg").selectAll("*").remove();
     d3.select("#selected-node-div svg").append("text")
@@ -296,7 +309,7 @@ function updateSelectedNodeText() {
     .text(text);
 }
 
-function makeGraph() {
+function drawGraph() {
     // Clear graph area
     graphArea.selectAll("*").remove();
 
@@ -320,36 +333,35 @@ function makeGraph() {
     .attr("stroke", "#999")
     .attr("stroke-width", 2);
 
-    // Add nodes
     const node = graphArea
-    .append("g")
-    .attr("class", "nodes")
-    .selectAll("circle")
-    .data(graph.nodes)
-    .enter()
-    .append("circle")
-    // Node radius
-    .attr("r", d => node_count[d.id] * 1.2 + 10) // Set radius based on node count
-    .attr("fill", d => node_color[d.id])
-    .on("click", (event, d) => {
-        nodeClick(d);
-    })
-    .call(d3.drag() // Enable drag behavior
-        .on("start", (event, d) => {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
+        .selectAll(".node")
+        .data(graph.nodes)
+        .enter()
+        .append("path")
+        .attr("d", d3.symbol()
+            .type(d => node_shape[d.id])
+            .size(d => node_count[d.id] * 80 + 300) // Set size based on node count
+        )
+        .attr("fill", d => node_color[d.id])
+        .on("click", (event, d) => {
+            nodeClick(d);
         })
-        .on("drag", (event, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
-        })
-        .on("end", (event, d) => {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-        })
-    );
+        .call(d3.drag() // Enable drag behavior
+            .on("start", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            })
+            .on("drag", (event, d) => {
+                d.fx = event.x;
+                d.fy = event.y;
+            })
+            .on("end", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            })
+        );
 
     // Add labels
     const label = graphArea
@@ -367,19 +379,18 @@ function makeGraph() {
 
     // Update positions on each tick
     simulation.on("tick", () => {
-    link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
-    node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+        node
+            .attr("transform", d => `translate(${d.x},${d.y})`);
 
-    label
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+        label
+            .attr("x", d => d.x)
+            .attr("y", d => d.y);
     });
 }
 
@@ -805,7 +816,7 @@ function updateAfterDateChange() {
     filterNodes();
 
     // Update graph
-    makeGraph();
+    drawGraph();
 
     updateHistogramPieChart();
 }
