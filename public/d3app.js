@@ -52,7 +52,7 @@ let graphArea;
 let histogramArea;
 let pieChartArea;
 
-const histogramMargin = { top: 20, right: 30, bottom: 40, left: 40 };
+const histogramMargin = { top: 20, right: 20, bottom: 40, left: 40 };
 
 // MindState to word mapping
 const MINDSTATE_NUMS = {
@@ -425,14 +425,24 @@ function selectTimeSleptValues() {
 }
 
 function drawHistogram() {
-    // Set up dimensions and margins
-    const histogramWidth = d3.select("#histogram-div")
-        .node().clientWidth - histogramMargin.left - histogramMargin.right;
-    const histogramHeight = d3.select("#histogram-div")
-        .node().clientHeight - histogramMargin.top - histogramMargin.bottom;
+    // Get the width and height of the histogram div
+    const histogramWidth = 450 - histogramMargin.left - histogramMargin.right;
+    const histogramHeight = 300 - histogramMargin.top - histogramMargin.bottom;
+
+    console.log(histogramWidth, histogramHeight);
 
     // Clear histogram area 
     histogramArea.selectAll("*").remove();
+
+    // Add title
+    histogramArea.append("text")
+        .attr("x", histogramWidth / 2)
+        .attr("y", 0)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-family", fontFamily)
+        .attr("font-size", "20px")
+        .text("Time Slept Histogram");
 
     // Prepare data and set scales
     const timeSleptValues = selectTimeSleptValues();
@@ -580,13 +590,12 @@ function drawPieChart() {
     // Data for the pie chart
     const mindStateData = getMindStateValues();
 
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const margin = { top: 30, right: 20, bottom: 20, left: 20 };
+    const titleHeight = 20;
 
     // Chart dimensions
-    const width = d3.select("#piechart-div")
-        .node().clientWidth - margin.left - margin.right;
-    const height = d3.select("#piechart-div")
-        .node().clientHeight - margin.top - margin.bottom;
+    const width = 300 - margin.left - margin.right;
+    const height = 300 - margin.top - margin.bottom - titleHeight;
 
     const radius = Math.min(width, height) / 2;
 
@@ -596,7 +605,7 @@ function drawPieChart() {
 
     // Create the arc generator
     const arc = d3.arc()
-        .innerRadius(70) // For a hole in the middle
+        .innerRadius(63) // For a hole in the middle
         .outerRadius(radius);
 
     // Create a tooltip
@@ -624,7 +633,7 @@ function drawPieChart() {
             tooltip.transition().duration(200).style('opacity', 0);
             d3.select(this).transition().duration(200).attr('transform', 'scale(1)');
         })
-        // Animation
+        // Animation of slices on load
         .each(function (d) {
             this._current = d;
         })
@@ -646,6 +655,17 @@ function drawPieChart() {
         .text(d => d.data.category)
         .style('font-size', '12px')
         .style('fill', 'white');
+
+    // Title
+    pieChartArea.append("text")
+        .attr("x", 0)
+        .attr("y", -height / 2 - titleHeight)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-family", fontFamily)
+        .attr("font-size", "20px")
+        .text("MindState Pie Chart");
+
 }
 
 function getToolTip() {
