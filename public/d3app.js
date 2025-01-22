@@ -5,11 +5,13 @@ const fontFamily = "Trebuchet MS";
 // Maximum date range
 // let minDate = "2024-10-10";
 let minDate = "2024-12-10";
-let maxDate = "2024-12-23";
+// Last date is not included in the range
+let maxDate = "2024-12-24";
 
 // Selected date range, used for filtering nodes in the graph
 let selectedStartDate = new Date(minDate);
-let selectedEndDate = new Date(maxDate);
+// It is the maxDate - 1 day
+let selectedEndDate = new Date(new Date(maxDate).setDate(new Date(maxDate).getDate() - 1));
 
 // Selected node, used to display information
 let previousNode = null;
@@ -765,11 +767,11 @@ function createTimeInterval() {
 
     // End draggable circle
     timeIntervalArea.append("circle")
-        .datum({ date: selectedEndDate, type: "end" })
-        .attr("cx", xScale(selectedEndDate))
+        .datum({ date: maxD, type: "end" })
+        .attr("cx", xScale(maxD))
         .attr("cy", svgHeight / 2)
         .attr("r", circleRadius)
-        .attr("fill", circleColor)
+        .attr("fill", "#F34424")
         .call(drag);
 
     // Add text for start date
@@ -788,15 +790,15 @@ function createTimeInterval() {
 
     // Add text for end date
     timeIntervalArea.append("text")
-        .datum({ date: selectedEndDate, type: "end" }) // Match the circle's data
+        .datum({ date: maxD, type: "end" }) // Match the circle's data
         .attr("id", "end-date-label")
-        .attr("x", xScale(selectedEndDate))
+        .attr("x", xScale(maxD))
         .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
         .attr("text-anchor", "middle")
         .attr("font-size", fontSizeBelowCircle)
         .attr("font-family", fontFamily)
         .attr("fill", "white")
-        .text(d3.timeFormat("%d %b")(selectedEndDate)); // Format as "21 Dec"
+        .text(d3.timeFormat("%d %b")(maxD)); // Format as "21 Dec"
 
     // Add number of days text
     timeIntervalArea.append("text")
