@@ -11,13 +11,34 @@ h1, h2 {
 }
 
 #graph-div {
-    width: 1500px;
-    height: 800px;
+    width: 800px;
+    height: 400px;
     padding: 20px;
     border: 3px solid black;
+    background-color: rgb(240, 236, 236);
+}
+
+#time-interval-div {
+    width: 500px;
+    height: 100px;
+    margin-left: 40px;
 }
 
 #selected-node-div {
-    width: 100%;
-    height: 100%;
+    width: 500px;
+    height: 100px;
+    margin-top: 20px;
+}
+
+#histogram-div {
+    width: 500px;
+    height: 300px;
+    margin-left: 30px;
+}
+
+#piechart-div {
+    width: 700px;
+    height: 500px;
+    margin-left: 30px;
+    margin-top: 50px;
 }
