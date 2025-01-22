@@ -4,7 +4,7 @@ const fontFamily = "Trebuchet MS";
 
 // Maximum date range
 // let minDate = "2024-10-10";
-let minDate = "2024-12-10";
+let minDate = "2024-11-15";
 // Last date is not included in the range
 let maxDate = "2024-12-24";
 
@@ -166,6 +166,9 @@ function filterNodes() {
         // Update node_dates
         for (let i = 0; i < date_nodes[date].length; i++) {
             const node = date_nodes[date][i];
+            // Ignore node with "NoContext"
+            if (node === "NoContext") continue;
+
             if (node_dates[node] === undefined) {
                 node_dates[node] = [];
             }
@@ -623,7 +626,8 @@ function drawPieChart() {
         .on('mouseover', function (event, d) {
             // Tooltip logic on hover
             tooltip.transition().duration(200).style('opacity', 1);
-            tooltip.html(`${d.data.value}/${getSelectedDatesDiff()} days`)
+            tooltip.html(`${d.data.category}: ` +
+                    `${d.data.value}/${getSelectedDatesDiff()} days`)
                 .style('left', (event.pageX + 10) + 'px')
                 .style('top', (event.pageY - 20) + 'px');
             d3.select(this).transition().duration(200).attr('transform', 'scale(1.08)');
@@ -645,6 +649,16 @@ function drawPieChart() {
                 return arc(interpolate(t));
             };
         });
+    
+    const shortenText = {
+        "Very Unpleasant": "VU",
+        "Unpleasant": "U",
+        "Slightly Unpleasant": "SU",
+        "Neutral": "N",
+        "Slightly Pleasant": "SP",
+        "Pleasant": "P",
+        "Very Pleasant": "VP"
+    };
 
     // Add labels to slices
     pieChartArea.selectAll('text')
@@ -652,7 +666,7 @@ function drawPieChart() {
         .enter()
         .append('text')
         .attr('transform', d => `translate(${arc.centroid(d)})`)
-        .text(d => d.data.category)
+        .text(d => shortenText[d.data.category])
         .style('font-size', '12px')
         .style('fill', 'white');
 
