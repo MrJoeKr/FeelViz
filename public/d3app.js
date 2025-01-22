@@ -320,7 +320,7 @@ function drawGraph() {
     // Define the simulation
     const simulation = d3.forceSimulation(graph.nodes)
     .force("link", d3.forceLink(graph.links).id(d => d.id).distance(60))
-    .force("charge", d3.forceManyBody().strength(-150))
+    .force("charge", d3.forceManyBody().strength(-50))
     .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
 
     // Add links
@@ -331,8 +331,8 @@ function drawGraph() {
     .data(graph.links)
     .enter()
     .append("line")
-    .attr("stroke", "#999")
-    .attr("stroke-width", 2);
+    .attr("stroke", "#D4D7DB")
+    .attr("stroke-width", 1);
 
     const node = graphArea
         .selectAll(".node")
@@ -341,7 +341,7 @@ function drawGraph() {
         .append("path")
         .attr("d", d3.symbol()
             .type(d => node_shape[d.id])
-            .size(d => node_count[d.id] * 80 + 300) // Set size based on node count
+            .size(d => node_count[d.id] * 20) // Set size based on node count
         )
         .attr("fill", d => node_color[d.id])
         .on("click", (event, d) => {
@@ -376,7 +376,7 @@ function drawGraph() {
         .attr("text-anchor", "middle")
         .text(d => d.id)
         .attr("fill", "black")
-        .attr("font-size", d => 12 + "px");
+        .attr("font-size", d => 6 + "px");
 
     // Update positions on each tick
     simulation.on("tick", () => {
@@ -636,16 +636,18 @@ function nodeClick(d) {
 
 function createTimeInterval() {
     // Initialize SVG dimensions
-    const svgWidth = 1000;
-    const svgHeight = 200;
-    const padding = 50;
+    // const svgWidth = 1000;
+    // const svgHeight = 200;
+    const svgWidth = d3.select("#time-interval-div").node().clientWidth;
+    const svgHeight = d3.select("#time-interval-div").node().clientHeight;
+    const padding = 70;
 
     // Create SVG
     const timeIntervalArea = d3
         .select("#time-interval-div")
         .append("svg")
         .attr("width", svgWidth)
-        .attr("height", svgHeight);
+        .attr("height", svgHeight)
 
     // Define time scale
     const minD = new Date(minDate);
@@ -654,6 +656,7 @@ function createTimeInterval() {
     const xScale = d3.scaleTime()
         .domain([minD, maxD])
         .range([padding, svgWidth - padding]);
+        // .range([padding, svgWidth - padding]);
 
     // Draw the base line
     timeIntervalArea.append("line")
@@ -666,7 +669,8 @@ function createTimeInterval() {
             .attr("stroke-width", 2);
 
     // Add discrete points on the line
-    const dates = d3.timeDays(minD, maxD);
+    // Also add the first point to the left of the start date
+    const dates = [minD, ...d3.timeDay.range(minD, maxD)];
     timeIntervalArea.selectAll("circle.point")
         .data(dates)
         .enter()
@@ -674,21 +678,36 @@ function createTimeInterval() {
         .attr("class", "point")
         .attr("cx", d => xScale(d))
         .attr("cy", svgHeight / 2)
-        .attr("r", 3)
+        .attr("r", 2)
         .attr("fill", "black");
+
+    // Add background line through the points
+    timeIntervalArea.append("line")
+        .attr("x1", xScale(minD))
+        .attr("y1", svgHeight / 2)
+        .attr("x2", xScale(maxD))
+        .attr("y2", svgHeight / 2)
+        .attr("stroke", "black")
+        .attr("stroke-width", 1);
 
     // Add boundary labels
     timeIntervalArea.append("text")
         .attr("x", xScale(minD))
         .attr("y", svgHeight / 2 - 20)
         .attr("text-anchor", "middle")
-        .text(d3.timeFormat("%b %d, %Y")(minD));
+        .text(d3.timeFormat("%b %d, %Y")(minD))
+        .attr("font-size", "12px")
+        .attr("font-family", fontFamily)
+        .attr("fill", "white");
 
     timeIntervalArea.append("text")
         .attr("x", xScale(maxD))
         .attr("y", svgHeight / 2 - 20)
         .attr("text-anchor", "middle")
-        .text(d3.timeFormat("%b %d, %Y")(maxD));
+        .text(d3.timeFormat("%b %d, %Y")(maxD))
+        .attr("font-size", "12px")
+        .attr("font-family", fontFamily)
+        .attr("fill", "white");
     
     // Draggable points with snapping
     const drag = d3.drag()
@@ -734,36 +753,38 @@ function createTimeInterval() {
     }
 
     // Start draggable circle
+    const circleRadius = 5;
+    const circleColor = "#8ED433";
     timeIntervalArea.append("circle")
         .datum({ date: selectedStartDate, type: "start" })
         .attr("cx", xScale(selectedStartDate))
         .attr("cy", svgHeight / 2)
-        .attr("r", 8)
-        .attr("fill", "blue")
+        .attr("r", circleRadius)
+        .attr("fill", circleColor)
         .call(drag);
-
-    // Add text for start date
-    const dateLabelMargin = 30;
-    timeIntervalArea.append("text")
-        .datum({ date: selectedStartDate, type: "start" }) // Match the circle's data
-        .attr("id", "start-date-label")
-        .attr("x", xScale(selectedStartDate))
-        .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
-        .attr("text-anchor", "middle")
-        .attr("font-size", "13px")
-        .attr("font-family", fontFamily)
-        .attr("fill", "white")
-        .text(d3.timeFormat("%d %b")(selectedStartDate)); // Format as "21 Dec"
-
 
     // End draggable circle
     timeIntervalArea.append("circle")
         .datum({ date: selectedEndDate, type: "end" })
         .attr("cx", xScale(selectedEndDate))
         .attr("cy", svgHeight / 2)
-        .attr("r", 8)
-        .attr("fill", "red")
+        .attr("r", circleRadius)
+        .attr("fill", circleColor)
         .call(drag);
+
+    // Add text for start date
+    const dateLabelMargin = 30;
+    const fontSizeBelowCircle = "9px";
+    timeIntervalArea.append("text")
+        .datum({ date: selectedStartDate, type: "start" }) // Match the circle's data
+        .attr("id", "start-date-label")
+        .attr("x", xScale(selectedStartDate))
+        .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
+        .attr("text-anchor", "middle")
+        .attr("font-size", fontSizeBelowCircle)
+        .attr("font-family", fontFamily)
+        .attr("fill", "white")
+        .text(d3.timeFormat("%d %b")(selectedStartDate)); // Format as "21 Dec"
 
     // Add text for end date
     timeIntervalArea.append("text")
@@ -772,7 +793,7 @@ function createTimeInterval() {
         .attr("x", xScale(selectedEndDate))
         .attr("y", svgHeight / 2 + dateLabelMargin) // Place below the circle
         .attr("text-anchor", "middle")
-        .attr("font-size", "13px")
+        .attr("font-size", fontSizeBelowCircle)
         .attr("font-family", fontFamily)
         .attr("fill", "white")
         .text(d3.timeFormat("%d %b")(selectedEndDate)); // Format as "21 Dec"
@@ -783,11 +804,13 @@ function createTimeInterval() {
         .attr("x", svgWidth / 2)
         .attr("y", svgHeight / 2 - 40)
         .attr("text-anchor", "middle")
-        .attr("font-size", "14px")
         .text(() => {
             const dayDiff = getSelectedDatesDiff();
             return `${dayDiff} days`;
-        });
+        })
+        .attr("font-size", "12px")
+        .attr("font-family", fontFamily)
+        .attr("fill", "white");
 }
 
 function getSelectedDatesDiff() {
