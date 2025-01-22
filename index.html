@@ -8,14 +8,16 @@
     
   </head>
   <body>
-    <h1>FeelViz: My Mental Wellbeing Visualization</h1>
-    <div id="time-interval-div"></div>
+    <h1 id="title">FeelViz: My Mental Wellbeing Visualization</h1>
+    <div style="display: flex; align-items: center;">
+      <div id="select-time-interval-text">Select time interval:</div>
+      <div id="time-interval-div" style="margin-left: 10px;"></div>
+    </div>
     <div id="graph-div"></div>
     <div id="selected-node-div"></div>
 
-    <h2>Histogram of Time Slept</h2>
     <div style="display: flex;">
-      <div id="histogram-div" style="flex: 1;"></div>
-      <div id="piechart-div" style="flex: 1;"></div>
+      <div id="histogram-div"></div>
+      <div id="piechart-div"></div>
     </div>
   </body>
