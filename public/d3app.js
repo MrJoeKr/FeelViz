@@ -487,6 +487,8 @@ function drawHistogram() {
         return;
     }
 
+    const tooltip = getToolTip();
+ 
     // Append bars to the histogram
     histogramArea.selectAll("rect")
         .data(bins)
@@ -501,6 +503,23 @@ function drawHistogram() {
         .duration(1000)
         .attr("y", d => y(d.length)) // Transition to final height
         .attr("height", d => histogramHeight - y(d.length)); // Transition height
+
+    // Add tooltip on hover
+    histogramArea.selectAll("rect")
+        .on('mouseover', function (event, d) {
+            // Tooltip logic on hover
+            tooltip.transition().duration(200).style('opacity', 1);
+            tooltip.html(`${d.length}/${getSelectedDatesDiff()} days `
+                + `<br> ${d.x0.toFixed(1)} - ${d.x1.toFixed(1)} hours`)
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 20) + 'px');
+            d3.select(this).transition().duration(200).attr('transform', 'scale(1.01)');
+        })
+        .on('mouseout', function () {
+            // Tooltip hide logic
+            tooltip.transition().duration(200).style('opacity', 0);
+            d3.select(this).transition().duration(200).attr('transform', 'scale(1)');
+        })
 }
 
 // Return a counter of mindState -> frequency in the selected date range
@@ -581,16 +600,7 @@ function drawPieChart() {
         .outerRadius(radius);
 
     // Create a tooltip
-    const tooltip = d3.select('body').append('div')
-        .attr('class', 'tooltip')
-        .style('opacity', 0)
-        .style('position', 'absolute')
-        .style('background', '#fff')
-        .style('border', '1px solid #ccc')
-        .style('border-radius', '4px')
-        .style('padding', '8px')
-        .style('pointer-events', 'none')
-        .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.1)');
+    const tooltip = getToolTip();
 
     // Bind data to pie slices
     const slices = pieChartArea.selectAll('path')
@@ -606,13 +616,7 @@ function drawPieChart() {
             tooltip.transition().duration(200).style('opacity', 1);
             tooltip.html(`${d.data.value}/${getSelectedDatesDiff()} days`)
                 .style('left', (event.pageX + 10) + 'px')
-                .style('top', (event.pageY - 20) + 'px')
-                // Font styling
-                .style('font-size', '11px')
-                .style('font-family', fontFamily)
-                .style('color', 'white')
-                // Set background color
-                .style('background', "#767A83");
+                .style('top', (event.pageY - 20) + 'px');
             d3.select(this).transition().duration(200).attr('transform', 'scale(1.08)');
         })
         .on('mouseout', function () {
@@ -630,6 +634,24 @@ function drawPieChart() {
         .text(d => d.data.category)
         .style('font-size', '12px')
         .style('fill', 'white');
+}
+
+function getToolTip() {
+    return d3.select('body').append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0)
+        // Font styling
+        .style('font-size', '11px')
+        .style('font-family', fontFamily)
+        .style('color', 'white')
+        // Set background color
+        .style('background', "#767A83")
+        .style('position', 'absolute')
+        .style('border', '1px solid #ccc')
+        .style('border-radius', '4px')
+        .style('padding', '8px')
+        .style('pointer-events', 'none')
+        .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.1)');
 }
 
 function nodeClick(d) {
