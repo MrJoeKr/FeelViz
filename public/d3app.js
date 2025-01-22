@@ -297,7 +297,7 @@ function updateSelectedNodeText() {
         text = "No node selected.";
     }
     else {
-        text = "Selected Node: " + selectedNode.id + ". "
+        text = 'Selected Node: "' + selectedNode.id + '". '
             + "Node count: " + node_count[selectedNode.id]
             + " out of " + getSelectedDatesDiff() + " days.";
     }
@@ -623,6 +623,18 @@ function drawPieChart() {
             // Tooltip hide logic
             tooltip.transition().duration(200).style('opacity', 0);
             d3.select(this).transition().duration(200).attr('transform', 'scale(1)');
+        })
+        // Animation
+        .each(function (d) {
+            this._current = d;
+        })
+        .transition()
+        .duration(600)
+        .attrTween('d', function (d) {
+            const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+            return function (t) {
+                return arc(interpolate(t));
+            };
         });
 
     // Add labels to slices
