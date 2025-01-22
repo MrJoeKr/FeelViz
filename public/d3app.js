@@ -321,7 +321,7 @@ function drawGraph() {
 
     // Define the simulation
     const simulation = d3.forceSimulation(graph.nodes)
-    .force("link", d3.forceLink(graph.links).id(d => d.id).distance(60))
+    .force("link", d3.forceLink(graph.links).id(d => d.id).distance(40))
     .force("charge", d3.forceManyBody().strength(-50))
     .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
 
@@ -577,7 +577,7 @@ function drawPieChart() {
 
     // Create the arc generator
     const arc = d3.arc()
-        .innerRadius(90) // For a hole in the middle
+        .innerRadius(70) // For a hole in the middle
         .outerRadius(radius);
 
     // Create a tooltip
@@ -604,9 +604,15 @@ function drawPieChart() {
         .on('mouseover', function (event, d) {
             // Tooltip logic on hover
             tooltip.transition().duration(200).style('opacity', 1);
-            tooltip.html(`Category: ${d.data.category}<br>Value: ${d.data.value}`)
+            tooltip.html(`${d.data.value}/${getSelectedDatesDiff()} days`)
                 .style('left', (event.pageX + 10) + 'px')
-                .style('top', (event.pageY - 20) + 'px');
+                .style('top', (event.pageY - 20) + 'px')
+                // Font styling
+                .style('font-size', '11px')
+                .style('font-family', fontFamily)
+                .style('color', 'white')
+                // Set background color
+                .style('background', "#767A83");
             d3.select(this).transition().duration(200).attr('transform', 'scale(1.08)');
         })
         .on('mouseout', function () {
