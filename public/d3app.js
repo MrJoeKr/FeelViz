@@ -296,8 +296,9 @@ function updateSelectedNodeText() {
     }
     else {
         text = "Selected Node: " + selectedNode.id + ". "
-            + "Node count: " + node_count[selectedNode.id] + ".";
-    } // TODO: add out of X days
+            + "Node count: " + node_count[selectedNode.id]
+            + " out of " + getSelectedDatesDiff() + " days.";
+    }
 
     d3.select("#selected-node-div svg").selectAll("*").remove();
     d3.select("#selected-node-div svg").append("text")
