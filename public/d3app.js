@@ -308,7 +308,7 @@ function updateSelectedNodeText() {
     .attr("y", 20)
     .attr("fill", "white")
     .attr("font-family", fontFamily)
-    .attr("font-size", "20px")
+    .attr("font-size", "15px")
     .text(text);
 }
 
@@ -631,9 +631,32 @@ function nodeClick(d) {
     previousNode = selectedNode;
     selectedNode = d;
 
+    updatedClickedNodeColor();
+
     // Update node information
     updateSelectedNodeText();
     updateHistogramPieChart();
+}
+
+// Set the color of the clicked node to a different color
+function updatedClickedNodeColor() {
+    // Reset the previous node color
+    if (previousNode !== null) {
+        graphArea.selectAll("path")
+            .filter(d => d.id === previousNode.id)
+            .attr("fill", node_color[previousNode.id]);
+    }
+
+    // If clicked on the same node, reset the selected node
+    if (previousNode === selectedNode) {
+        previousNode = null;
+        selectedNode = null;
+        return;
+    }
+
+    graphArea.selectAll("path")
+        .filter(d => d.id === selectedNode.id)
+        .attr("fill", "#E84C58");
 }
 
 function createTimeInterval() {
