@@ -50,12 +50,12 @@ const histogramMargin = { top: 20, right: 30, bottom: 40, left: 40 };
 
 // MindState to word mapping
 const MINDSTATE_NUMS = {
-    "-3": { "name": "Very Unpleasant", "color": "#6149A8" },
-    "-2": { "name": "Unpleasant", "color": "#809DD8" },
+    "-3": { "name": "Very Unpleasant", "color": "#3B35A2" },
+    "-2": { "name": "Unpleasant", "color": "#357DD2" },
     "-1": { "name": "Slightly Unpleasant", "color": "#7899C5" },
-     "0": { "name": "Neutral", "color": "#89B8B4" },
-     "1": { "name": "Slightly Pleasant", "color": "#B9C85A" },
-     "2": { "name": "Pleasant", "color": "#C7BD46" },
+     "0": { "name": "Neutral", "color": "#79BBCB" },
+     "1": { "name": "Slightly Pleasant", "color": "#8ED433"},
+     "2": { "name": "Pleasant", "color": "#F2C724"},
      "3": { "name": "Very Pleasant", "color": "#EB8F31" }
 };
 
@@ -504,18 +504,26 @@ function drawPieChart() {
     const height = d3.select("#piechart-div").node().clientHeight;
     const radius = Math.min(width, height) / 2;
 
-    // Create a color scale
-    // TODO: USE Color according to data.color
-    const color = d3.scaleOrdinal()
-        .domain(mindStateData.map(d => d.category))
-        .range(d3.schemeCategory10);
     // Create the pie generator
     const pie = d3.pie()
         .value(d => d.value);
+
     // Create the arc generator
     const arc = d3.arc()
         .innerRadius(90) // For a hole in the middle
         .outerRadius(radius);
+
+    // Create a tooltip
+    const tooltip = d3.select('body').append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0)
+        .style('position', 'absolute')
+        .style('background', '#fff')
+        .style('border', '1px solid #ccc')
+        .style('border-radius', '4px')
+        .style('padding', '8px')
+        .style('pointer-events', 'none')
+        .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.1)');
 
     // Bind data to pie slices
     const slices = pieChartArea.selectAll('path')
@@ -523,9 +531,22 @@ function drawPieChart() {
         .enter()
         .append('path')
         .attr('d', arc)
-        .attr('fill', d => color(d.data.category))
+        .attr('fill', d => d.data.color) // Use `color` from data
         .attr('stroke', 'white')
-        .style('stroke-width', '2px');
+        .style('stroke-width', '2px')
+        .on('mouseover', function (event, d) {
+            // Tooltip logic on hover
+            tooltip.transition().duration(200).style('opacity', 1);
+            tooltip.html(`Category: ${d.data.category}<br>Value: ${d.data.value}`)
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 20) + 'px');
+            d3.select(this).transition().duration(200).attr('transform', 'scale(1.1)');
+        })
+        .on('mouseout', function () {
+            // Tooltip hide logic
+            tooltip.transition().duration(200).style('opacity', 0);
+            d3.select(this).transition().duration(200).attr('transform', 'scale(1)');
+        });
 
     // Add labels to slices
     pieChartArea.selectAll('text')
@@ -536,38 +557,7 @@ function drawPieChart() {
         .text(d => d.data.category)
         .style('font-size', '12px')
         .style('fill', 'white');
-    
-    // Add mouseover and mouseout effects
-    slices.on('mouseover', function (event, d) {
-        d3.select(this)
-            .transition()
-            .duration(200)
-            .attr('transform', 'scale(1.1)');
-    })
-    .on('mouseout', function (event, d) {
-        d3.select(this)
-            .transition()
-            .duration(200)
-            .attr('transform', 'scale(1)');
-    });
-
-    // Create a tooltip
-    const tooltip = d3.select('body').append('div')
-        .attr('class', 'tooltip')
-        .style('opacity', 0);
-
-    // Show tooltip on hover
-    // slices.on('mouseover', function (event, d) {
-    //     tooltip.transition().duration(200).style('opacity', 1);
-    //     tooltip.html(`Category: ${d.data.category}<br>Value: ${d.data.value}`)
-    //         .style('left', (event.pageX + 10) + 'px')
-    //         .style('top', (event.pageY - 20) + 'px');
-    // })
-    // .on('mouseout', function () {
-    //     tooltip.transition().duration(200).style('opacity', 0);
-    // });
 }
-
 
 function nodeClick(d) {
     // Update selected node
