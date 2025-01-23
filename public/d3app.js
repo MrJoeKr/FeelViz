@@ -17,10 +17,10 @@ let selectedEndDate = new Date(new Date(maxDate).setDate(new Date(maxDate).getDa
 let previousNode = null;
 let selectedNode = null;
 
-// Set of all edges (links), i.e. pairs of nodes in format "node1|node2"
+// Dictionary of all edges (links), i.e. pairs of nodes in format "node1|node2"
 // Used to avoid duplicate edges
-// These are then used to make the graph.links
-let __links = new Set();
+// nodeA|nodeB -> count
+let link_count = {};
 
 // Load data
 let graph = { nodes: [], links: [] };
@@ -184,10 +184,11 @@ function loadGraphData() {
     // Clear graph
     graph.nodes = [];
     graph.links = [];
-    __links = new Set();
 
     // Clear node count
     node_count = {};
+    // Clear link count
+    link_count = {};
 
     // Use node_dates
     for (let date in date_nodes) {
@@ -207,12 +208,15 @@ function loadGraphData() {
                     continue;
                 }
                 const otherNode = date_nodes[date][j];
+                // Check both directions to avoid duplicates
                 const edge = `${node}|${otherNode}`;
                 const reverseEdge = `${otherNode}|${node}`;
-                if (!__links.has(edge) && !__links.has(reverseEdge)) {
-                    __links.add(edge);
+                // Add edge if not already in graph.links
+                if (link_count[edge] === undefined && link_count[reverseEdge] === undefined) {
+                    link_count[edge] = 0;
                     graph.links.push({ source: node, target: otherNode });
                 }
+                link_count[edge]++;
             }
 
             // Increment node count
@@ -316,6 +320,41 @@ function updateSelectedNodeText() {
     .text(text);
 }
 
+function getLinkCount(nodeA, nodeB) {
+
+    const link1 = `${nodeA}|${nodeB}`;
+    const link2 = `${nodeB}|${nodeA}`;
+
+    let count = 0;
+    if (link_count[link1] !== undefined) {
+        count = link_count[link1];
+    } else if (link_count[link2] !== undefined) {
+        count = link_count[link2];
+    } else {
+        console.log("Error: link count not found for " + nodeA + " and " + nodeB);
+    }
+
+    return count;
+}
+
+function linkDistance(link) {
+    const count = getLinkCount(link.source.id, link.target.id);
+
+    // return 40;
+    return 40 / count;
+}
+
+// function linkCharge(link)
+
+// Return node -> percentage of total nodes
+function getNodePercentage(node) {
+    let node_percentage = {};
+    for (let key in node_count) {
+        node_percentage[key] = node_count[key] / graph.nodes.length;
+    }
+    return node_percentage;
+}
+
 function drawGraph() {
     // Clear graph area
     graphArea.selectAll("*").remove();
@@ -323,22 +362,26 @@ function drawGraph() {
     const graphWidth = d3.select("#graph-div").node().clientWidth;
     const graphHeight = d3.select("#graph-div").node().clientHeight;
 
-    // Define the simulation
     const simulation = d3.forceSimulation(graph.nodes)
-    .force("link", d3.forceLink(graph.links).id(d => d.id).distance(40))
-    .force("charge", d3.forceManyBody().strength(-50))
-    .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
+        .force("link", d3.forceLink(graph.links)
+            .id(d => d.id)
+            .distance(d => linkDistance(d)))
+        .force("charge", d3.forceManyBody().strength(-50))
+        .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
 
     // Add links
     const link = graphArea
-    .append("g")
-    .attr("class", "links")
-    .selectAll("line")
-    .data(graph.links)
-    .enter()
-    .append("line")
-    .attr("stroke", "#D4D7DB")
-    .attr("stroke-width", 1);
+        .append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(graph.links)
+        .enter()
+        .append("line")
+        .attr("stroke", "#D4D7DB")
+        .attr("stroke-width", 1);
+
+    // For sizing nodes
+    const node_percentage = getNodePercentage(graph.nodes);
 
     const node = graphArea
         .selectAll(".node")
@@ -347,7 +390,8 @@ function drawGraph() {
         .append("path")
         .attr("d", d3.symbol()
             .type(d => node_shape[d.id])
-            .size(d => node_count[d.id] * 20) // Set size based on node count
+            // .size(d => node_count[d.id] * 20) // Set size based on node count
+            .size(d => 2000 * node_percentage[d.id]) // Set size based on node count
         )
         .attr("fill", d => node_color[d.id])
         .on("click", (event, d) => {
@@ -456,13 +500,13 @@ function drawHistogram() {
     const histogram = d3.histogram()
         .value(d => d) // TimeSlept values already processed
         .domain(x.domain())
-        .thresholds(x.ticks(20));
+        .thresholds(x.ticks(10));
 
     const bins = histogram(timeSleptValues);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(bins, d => d.length)])
-        // .domain([0, getSelectedDatesDiff()])
+        .domain([0, d3.max(bins, d => d.length) + 1]) // Max frequency + 1
+        // .domain([0, getSelectedDatesDiff()]) // Max frequency is the number of days
         .range([histogramHeight, 0]);
 
     // Add x-axis
