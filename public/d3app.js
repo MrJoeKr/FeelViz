@@ -4,7 +4,7 @@ const fontFamily = "Trebuchet MS";
 
 // Maximum date range
 // let minDate = "2024-10-10";
-let minDate = "2024-11-15";
+let minDate = "2024-10-07";
 // Last date is not included in the range
 let maxDate = "2024-12-24";
 
@@ -16,6 +16,8 @@ let selectedEndDate = new Date(new Date(maxDate).setDate(new Date(maxDate).getDa
 // Selected node, used to display information
 let previousNode = null;
 let selectedNode = null;
+// Links of the selected node
+let selectedNodeLinks = [];
 
 // Dictionary of all edges (links), i.e. pairs of nodes in format "node1|node2"
 // Used to avoid duplicate edges
@@ -267,10 +269,6 @@ function setNodeColors() {
             }
         }
 
-        if (maxMindState === "-3") {
-            console.log("Error: maxMindState is -3");
-        }
-
         // Set the color of the node
         const color = MINDSTATE_NUMS[maxMindState].color;
         node_color[node] = color;
@@ -377,9 +375,10 @@ function drawGraph() {
         .data(graph.links)
         .enter()
         .append("line")
-        .attr("stroke", "#D4D7DB")
+        // .attr("stroke", "#D4D7DB")
+        .attr("stroke", d => setLinkColor(d))
         .attr("stroke-width", 1);
-
+    
     // For sizing nodes
     const node_percentage = getNodePercentage(graph.nodes);
 
@@ -393,7 +392,8 @@ function drawGraph() {
             // .size(d => node_count[d.id] * 20) // Set size based on node count
             .size(d => 2000 * node_percentage[d.id]) // Set size based on node count
         )
-        .attr("fill", d => node_color[d.id])
+        // Update color based on selected node
+        .attr("fill", d => d.id === selectedNode?.id ? "#E84C58" : node_color[d.id])
         .on("click", (event, d) => {
             nodeClick(d);
         })
@@ -443,7 +443,24 @@ function drawGraph() {
             .attr("x", d => d.x)
             .attr("y", d => d.y);
     });
+
 }
+
+// Set the color of the link based on the selected node
+function setLinkColor(link) {
+    if (selectedNode === null) {
+        return "#D4D7DB";
+    }
+    for (let i = 0; i < selectedNodeLinks.length; i++) {
+        if (link.source.id === selectedNodeLinks[i].source &&
+            link.target.id === selectedNodeLinks[i].target) {
+            return "#000000";
+        }
+    }
+    return "#D4D7DB";
+}
+
+
 
 // Select timeSlept values according to the selected date range
 // and selected node
@@ -752,11 +769,34 @@ function nodeClick(d) {
     previousNode = selectedNode;
     selectedNode = d;
 
+    // Update links
+    updateSelectedNodeLinks();
+
     updatedClickedNodeColor();
 
     // Update node information
     updateSelectedNodeText();
     updateHistogramPieChart();
+}
+
+function updateSelectedNodeLinks() {
+    selectedNodeLinks = [];
+
+    // Find all links that contain the selected node
+    for (let node in node_dates) {
+        if (node === selectedNode.id) continue;
+        const link1 = `${selectedNode.id}|${node}`;
+        if (link_count[link1] !== undefined && link_count[link1] > 0) {
+            // Push the link
+            selectedNodeLinks.push({ source: selectedNode.id, target: node });
+        }
+        
+        const link2 = `${node}|${selectedNode.id}`;
+        if (link_count[link2] !== undefined && link_count[link2] > 0) {
+            // Push the link
+            selectedNodeLinks.push({ source: node, target: selectedNode.id });
+        }
+    }
 }
 
 // Set the color of the clicked node to a different color
@@ -766,6 +806,10 @@ function updatedClickedNodeColor() {
         graphArea.selectAll("path")
             .filter(d => d.id === previousNode.id)
             .attr("fill", node_color[previousNode.id]);
+        
+        // Reset the links
+        graphArea.selectAll("line")
+            .attr("stroke", "#D4D7DB");
     }
 
     // If clicked on the same node, reset the selected node
@@ -775,9 +819,14 @@ function updatedClickedNodeColor() {
         return;
     }
 
+    // Change the color of the selected node
     graphArea.selectAll("path")
         .filter(d => d.id === selectedNode.id)
         .attr("fill", "#E84C58");
+
+    // Change color of the links for the selected node
+    graphArea.selectAll("line")
+        .attr("stroke", d => setLinkColor(d));
 }
 
 function createTimeInterval() {
