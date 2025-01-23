@@ -9,8 +9,38 @@
   </head>
   <body>
     <h1 id="title">FeelViz: My Mental Wellbeing Visualization</h1>
-    <div style="display: flex; align-items: center;">
-      <div id="select-time-interval-text">Select time interval:</div>
+
+    <a id="popup-text" href="javascript:void(0)" onclick="toggleLightbox(true)">Graph legend and visualization description</a>
+    <div id="light" class="white_content">
+        <p>Click on a node to update the charts. Second click will deselect the node.</p>
+        <p><i><b>Graph colors</b></i>: Most common feeling during the given time interval. Hover on pie chart to see type of feelings.</p>
+        <p>
+            <i><b>Graph Shapes:</b></i>
+            <ul>
+                <li>★ Star: Association, things that had biggest impact on me in a day (Family, Work, Friends,...).</li>
+                <li>◼ Rectangle: Description, specific feelings that I had in a day (Happy, Sad, Frustrated,...).</li>
+                <li>⬤ Circle: Context, my own thoughts and feelings that I had in a day ("Productive day, a lot of work", ...).</li>
+            </ul>
+        </p>
+        <p style="margin-top: 10px;">
+            The size of the node represents the number of times I had that feeling in the given time interval.
+        </p>
+        <p>
+            The distance between the nodes represents the frequency of these two words appearing together in the same day (if possible).
+        </p>
+
+    </div>
+    <div id="fade" class="black_overlay" onclick="toggleLightbox(false)"></div>
+
+    <script>
+      function toggleLightbox(show) {
+        document.getElementById('light').style.display = show ? 'block' : 'none';
+        document.getElementById('fade').style.display = show ? 'block' : 'none';
+      }
+    </script>
+
+    <div style="display: flex; align-items: center; margin-top: 20px;">
+      <div id="select-time-interval-text">Select time interval [start, end):</div>
       <div id="time-interval-div" style="margin-left: 10px;"></div>
     </div>
     <div id="graph-div"></div>
