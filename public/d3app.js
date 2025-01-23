@@ -297,7 +297,8 @@ function createSelectedNodeText() {
 function updateSelectedNodeText() {
     let text;
     if (selectedNode === null) {
-        text = "No node selected.";
+        text = 
+            "No node selected. Showing all statistics from the selected date range.";
     }
     else {
         text = 'Selected Node: "' + selectedNode.id + '". '
@@ -428,11 +429,10 @@ function selectTimeSleptValues() {
 }
 
 function drawHistogram() {
-    // Get the width and height of the histogram div
-    const histogramWidth = 450 - histogramMargin.left - histogramMargin.right;
-    const histogramHeight = 300 - histogramMargin.top - histogramMargin.bottom;
-
-    console.log(histogramWidth, histogramHeight);
+    const histogramWidth = 
+        450 - histogramMargin.left - histogramMargin.right;
+    const histogramHeight = 
+        300 - histogramMargin.top - histogramMargin.bottom;
 
     // Clear histogram area 
     histogramArea.selectAll("*").remove();
@@ -461,8 +461,8 @@ function drawHistogram() {
     const bins = histogram(timeSleptValues);
 
     const y = d3.scaleLinear()
-        // .domain([0, d3.max(bins, d => d.length)]) // Max bin count
-        .domain([0, getSelectedDatesDiff()]) // Max bin count
+        .domain([0, d3.max(bins, d => d.length)])
+        // .domain([0, getSelectedDatesDiff()])
         .range([histogramHeight, 0]);
 
     // Add x-axis
@@ -482,7 +482,10 @@ function drawHistogram() {
 
     // Add y-axis
     histogramArea.append("g")
-        .call(d3.axisLeft(y));
+        // Integers only
+        .call(d3.axisLeft(y)
+            .ticks(y.domain()[1])
+                .tickFormat(d3.format("d")));
     
     // Add y-axis label
     histogramArea.append("text")
