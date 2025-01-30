@@ -442,23 +442,32 @@ function drawGraph() {
         .attr("pointer-events", "all")
 
     const zoom = d3.zoom()
-        // .scaleExtent([0.5, 64])
-        // .scaleExtent([0.2, 32])
-        .scaleExtent([0.0, 32])
+        .scaleExtent([0.5, 64])
         .on("zoom", function(event) {
             transform = event.transform;
             graphArea.attr("transform", event.transform);
+        })
+        // Use only when mouse wheel is used
+        .filter(function(event) {
+            return event.type === "wheel";
         });
-        // .on("start", function(event) {
-        //     // Stop simulation during interaction
-        //     simulation.stop();
-        // })
-        // .on("end", function(event) {
-        //     // Restart simulation with some alpha to smooth the restart
-        //     simulation.alpha(0.3).restart();
-        // });
+    
+    // Dragging
+    const dragSpeed = 1;
+    const drag = d3.drag()
+        .on("drag", function(event) {
+            // If dx and dy too big, the graph will move too fast
+            const threshold = 5;
+            if (event.dx > threshold || event.dy > threshold)
+                return;
 
+            transform.x += event.dx * dragSpeed;
+            transform.y += event.dy * dragSpeed;
+            graphArea.attr("transform", transform);
+        });
+    
     zoomRect.call(zoom)
+        .call(drag)
         .call(zoom.translateTo, graphWidth / 2, graphHeight / 2);
 
     // Add links
