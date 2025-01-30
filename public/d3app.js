@@ -15,10 +15,6 @@ let maxDate = "2024-12-24";
 let selectedStartDate = new Date("2024-10-18");
 let selectedEndDate = new Date("2024-10-31");
 
-// TODO REMOVE
-selectedStartDate = new Date("2024-10-31");
-selectedEndDate = new Date("2024-11-21");
-
 // Selected node, used to display information
 let previousNode = null;
 let selectedNode = null;
@@ -358,11 +354,11 @@ function updateSelectedNodeText() {
 function updateSelectedMindStateText() {
     let text;
     if (selectedMindState === null) {
-        text = "Showing all mindStates. Click on a pie chart's slice to filter by mindState.";
+        text = "Showing all feelings. Click on a pie chart's slice to filter by a feeling.";
     }
     else {
         // Color the text by mindState
-        text = 'Selected mind state: <span style="color:' 
+        text = 'Selected feeling: <span style="color:' 
             + MINDSTATE_NUMS[selectedMindState].color + ';">' 
             + MINDSTATE_NUMS[selectedMindState].name + '</span>.';
     }
@@ -446,6 +442,10 @@ function drawGraph() {
         .on("zoom", function(event) {
             transform = event.transform;
             graphArea.attr("transform", event.transform);
+        })
+        .filter(function(event) {
+            // Ignore when CTRL key is pressed
+            return !event.ctrlKey;
         });
     
     zoomRect.call(zoom)
@@ -546,8 +546,6 @@ function setLinkColor(link) {
     }
     return "#D4D7DB";
 }
-
-
 
 // Select timeSlept values according to the selected date range
 // and selected node
@@ -854,7 +852,7 @@ function drawPieChart() {
         .attr("fill", "white")
         .attr("font-family", fontFamily)
         .attr("font-size", "20px")
-        .text("MindState Pie Chart");
+        .text("Feelings Pie Chart");
 
 }
 
