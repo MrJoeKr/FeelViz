@@ -8,10 +8,12 @@
     
   </head>
   <body>
+    <div class="center-div">
     <h1 id="title">FeelViz: My Mental Wellbeing Visualization</h1>
 
     <a id="popup-text" href="javascript:void(0)" onclick="toggleLightbox(true)">Graph legend and visualization description</a>
     <div id="light" class="white_content">
+        <p> Zoom in and out with the mouse wheel in the graph background to see the graph in more detail.</p>
         <p>Click on a node to update the charts. Second click will deselect the node.</p>
         <p><i><b>Graph colors</b></i>: Most common feeling during the given time interval. Hover on pie chart to see type of feelings.</p>
         <p>
@@ -45,11 +47,15 @@
       <div id="select-time-interval-text">Select time interval [start, end):</div>
       <div id="time-interval-div" style="margin-left: 10px;"></div>
     </div>
-    <div id="graph-div"></div>
+    <div class="border">
+        <div id="graph-div"></div>
+    </div>
     <div id="selected-node-div"></div>
+    <div id="selected-mindstate-div"></div>
 
     <div style="display: flex;">
       <div id="histogram-div"></div>
       <div id="piechart-div"></div>
     </div>
+    </div> <!-- Center div -->
   </body>

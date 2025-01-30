@@ -15,11 +15,19 @@ let maxDate = "2024-12-24";
 let selectedStartDate = new Date("2024-10-18");
 let selectedEndDate = new Date("2024-10-31");
 
+// TODO REMOVE
+selectedStartDate = new Date("2024-10-31");
+selectedEndDate = new Date("2024-11-21");
+
 // Selected node, used to display information
 let previousNode = null;
 let selectedNode = null;
 // Links of the selected node
 let selectedNodeLinks = [];
+
+// Selected mindState, used to filter nodes in the graph by mindState
+let previousMindState = null;
+let selectedMindState = null;
 
 // Dictionary of all edges (links), i.e. pairs of nodes in format "node1|node2"
 // Used to avoid duplicate edges
@@ -69,6 +77,17 @@ const MINDSTATE_NUMS = {
      "3": { "name": "Very Pleasant", "color": "#EB8F31" }
 };
 
+// Word to mindState mapping
+const MINDSTATE_NUM = {
+    "Very Unpleasant": "-3",
+    "Unpleasant": "-2",
+    "Slightly Unpleasant": "-1",
+    "Neutral": "0",
+    "Slightly Pleasant": "1",
+    "Pleasant": "2",
+    "Very Pleasant": "3"
+};
+
 loadData().then(() => {
     initAreas();
     visualizeData();
@@ -107,6 +126,7 @@ function visualizeData() {
     createTimeInterval();
     drawGraph();
     createSelectedNodeText();
+    createSelectedMindStateText();
     drawHistogram();
     drawPieChart();
 }
@@ -159,9 +179,17 @@ function filterNodes() {
 
     for (let date in __date_nodes) {
         let dDate = new Date(date);
-        // Filter dates
+        // Filter by date
         if (!(selectedStartDate <= dDate && dDate <= selectedEndDate)) {
             continue;
+        }
+
+        // Filter by mindState
+        if (selectedMindState !== null) {
+            const mindState = day_stats[date].mindState;
+
+            if (mindState !== selectedMindState)
+                continue;
         }
 
         // Add to date_nodes
@@ -170,8 +198,6 @@ function filterNodes() {
         // Update node_dates
         for (let i = 0; i < date_nodes[date].length; i++) {
             const node = date_nodes[date][i];
-            // Ignore node with "NoContext"
-            if (node === "NoContext") continue;
 
             if (node_dates[node] === undefined) {
                 node_dates[node] = [];
@@ -298,6 +324,15 @@ function createSelectedNodeText() {
     updateSelectedNodeText();
 }
 
+// Add selected mindState text
+function createSelectedMindStateText() {
+    d3.select("#selected-mindstate-div").append("svg")
+    .attr("width", d3.select("#selected-mindstate-div").node().clientWidth)
+    .attr("height", d3.select("#selected-mindstate-div").node().clientHeight)
+
+    updateSelectedMindStateText();
+}
+
 function updateSelectedNodeText() {
     let text;
     if (selectedNode === null) {
@@ -320,6 +355,32 @@ function updateSelectedNodeText() {
     .text(text);
 }
 
+function updateSelectedMindStateText() {
+    let text;
+    if (selectedMindState === null) {
+        text = "Showing all mindStates. Click on a pie chart's slice to filter by mindState.";
+    }
+    else {
+        // Color the text by mindState
+        text = 'Selected mind state: <span style="color:' 
+            + MINDSTATE_NUMS[selectedMindState].color + ';">' 
+            + MINDSTATE_NUMS[selectedMindState].name + '</span>.';
+    }
+
+    d3.select("#selected-mindstate-div svg").selectAll("*").remove();
+    d3.select("#selected-mindstate-div svg").append("foreignObject")
+    .attr("x", 10)
+    .attr("y", 10)
+    .attr("width", d3.select("#selected-mindstate-div").node().clientWidth)
+    .attr("height", d3.select("#selected-mindstate-div").node().clientHeight)
+    .append("xhtml:div")
+    .style("font-family", fontFamily)
+    .style("font-size", "15px")
+    .style("color", "white")
+    .html(text);
+}
+
+
 function getLinkCount(nodeA, nodeB) {
 
     const link1 = `${nodeA}|${nodeB}`;
@@ -341,7 +402,8 @@ function linkDistance(link) {
     const count = getLinkCount(link.source.id, link.target.id);
 
     // return 40;
-    return 40 / count;
+    // The higher the count, the shorter the distance
+    return 20 / count;
 }
 
 // function linkCharge(link)
@@ -359,6 +421,9 @@ function drawGraph() {
     // Clear graph area
     graphArea.selectAll("*").remove();
 
+    // For zooming in and out
+    let transform = d3.zoomIdentity;
+
     const graphWidth = d3.select("#graph-div").node().clientWidth;
     const graphHeight = d3.select("#graph-div").node().clientHeight;
 
@@ -368,6 +433,33 @@ function drawGraph() {
             .distance(d => linkDistance(d)))
         .force("charge", d3.forceManyBody().strength(-50))
         .force("center", d3.forceCenter(graphWidth / 2, graphHeight / 2));
+    
+    // Add zooming
+    const zoomRect = graphArea.append("rect")
+        .attr("width", graphWidth)
+        .attr("height", graphHeight)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+
+    const zoom = d3.zoom()
+        // .scaleExtent([0.5, 64])
+        // .scaleExtent([0.2, 32])
+        .scaleExtent([0.0, 32])
+        .on("zoom", function(event) {
+            transform = event.transform;
+            graphArea.attr("transform", event.transform);
+        });
+        // .on("start", function(event) {
+        //     // Stop simulation during interaction
+        //     simulation.stop();
+        // })
+        // .on("end", function(event) {
+        //     // Restart simulation with some alpha to smooth the restart
+        //     simulation.alpha(0.3).restart();
+        // });
+
+    zoomRect.call(zoom)
+        .call(zoom.translateTo, graphWidth / 2, graphHeight / 2);
 
     // Add links
     const link = graphArea
@@ -379,7 +471,7 @@ function drawGraph() {
         .append("line")
         // .attr("stroke", "#D4D7DB")
         .attr("stroke", d => setLinkColor(d))
-        .attr("stroke-width", 1);
+        .attr("stroke-width", 0.5);
     
     // For sizing nodes
     const node_percentage = getNodePercentage(graph.nodes);
@@ -392,7 +484,7 @@ function drawGraph() {
         .attr("d", d3.symbol()
             .type(d => node_shape[d.id])
             // .size(d => node_count[d.id] * 20) // Set size based on node count
-            .size(d => 2000 * node_percentage[d.id]) // Set size based on node count
+            .size(d => 1500 * node_percentage[d.id]) // Set size based on node count
         )
         // Update color based on selected node
         .attr("fill", d => d.id === selectedNode?.id ? "#E84C58" : node_color[d.id])
@@ -417,6 +509,7 @@ function drawGraph() {
         );
 
     // Add labels
+    const labelTextSize = 6;
     const label = graphArea
         .append("g")
         .attr("class", "labels")
@@ -428,7 +521,7 @@ function drawGraph() {
         .attr("text-anchor", "middle")
         .text(d => d.id)
         .attr("fill", "black")
-        .attr("font-size", d => 6 + "px");
+        .attr("font-size", d => labelTextSize + "px");
 
     // Update positions on each tick
     simulation.on("tick", () => {
@@ -609,9 +702,13 @@ function getMindStateValues() {
         // Loop through all dates in [selectedStartDate, selectedEndDate]
         for (let date = new Date(selectedStartDate); 
                 date <= selectedEndDate; date.setDate(date.getDate() + 1)) {
-
+            
             // Transform date to string in format "YYYY-MM-DD"
             const dateString = date.toISOString().split('T')[0];
+
+            // Skip date that is not in date_nodes
+            if (date_nodes[dateString] === undefined)
+                continue;
 
             // Check if date exists in day_stats
             if (day_stats[dateString] !== undefined) {
@@ -680,9 +777,14 @@ function drawPieChart() {
     // Create a tooltip
     const tooltip = getToolTip();
 
+    // Animation flag
+    let animationDone = false;
+
     // Bind data to pie slices
     const slices = pieChartArea.selectAll('path')
-        .data(pie(mindStateData))
+        .data(pie(mindStateData.sort(
+            // Transform to nums and sort
+            (a, b) => parseInt(MINDSTATE_NUM[a.category]) - parseInt(MINDSTATE_NUM[b.category]))))
         .enter()
         .append('path')
         .attr('d', arc)
@@ -690,6 +792,9 @@ function drawPieChart() {
         .attr('stroke', 'white')
         .style('stroke-width', '2px')
         .on('mouseover', function (event, d) {
+            // Wait for animation to finish
+            if (!animationDone) return;
+
             // Tooltip logic on hover
             tooltip.transition().duration(200).style('opacity', 1);
             tooltip.html(`${d.data.category}: ` +
@@ -699,21 +804,34 @@ function drawPieChart() {
             d3.select(this).transition().duration(200).attr('transform', 'scale(1.08)');
         })
         .on('mouseout', function () {
+            // Wait for animation to finish
+            if (!animationDone) return;
+
             // Tooltip hide logic
             tooltip.transition().duration(200).style('opacity', 0);
             d3.select(this).transition().duration(200).attr('transform', 'scale(1)');
         })
+        // Filter nodes by mindState on click
+        .on('click', function (event, d) {
+            // Remove tooltip HTML
+            tooltip.remove();
+            pieChartSliceClick(d);
+        })
         // Animation of slices on load
         .each(function (d) {
-            this._current = d;
+            this._current = { startAngle: 0, endAngle: 0 };
         })
         .transition()
-        .duration(600)
+        .duration(500)
         .attrTween('d', function (d) {
-            const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+            const interpolate = d3.interpolate(this._current, d);
+            this._current = interpolate(1);
             return function (t) {
                 return arc(interpolate(t));
             };
+        })
+        .on('end', () => {
+            animationDone = true;
         });
     
     const shortenText = {
@@ -766,10 +884,27 @@ function getToolTip() {
         .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.1)');
 }
 
+function pieChartSliceClick(slice) {
+    // Update selected mindState
+    previousMindState = selectedMindState;
+    selectedMindState = MINDSTATE_NUM[slice.data.category];
+
+    // If clicked on the same slice, reset the selected mindState
+    if (selectedMindState !== null && previousMindState === selectedMindState)
+        selectedMindState = null;
+
+    updateSelectedMindStateText();
+    updateAllCharts();
+}
+
 function nodeClick(d) {
     // Update selected node
     previousNode = selectedNode;
     selectedNode = d;
+
+    // If clicked on the same node, reset the selected node
+    if (selectedNode !== null && previousNode === selectedNode)
+        selectedNode = null;
 
     // Update links
     updateSelectedNodeLinks();
@@ -783,6 +918,10 @@ function nodeClick(d) {
 
 function updateSelectedNodeLinks() {
     selectedNodeLinks = [];
+
+    // Return if no node is selected
+    if (selectedNode === null)
+        return;
 
     // Find all links that contain the selected node
     for (let node in node_dates) {
@@ -814,12 +953,9 @@ function updatedClickedNodeColor() {
             .attr("stroke", "#D4D7DB");
     }
 
-    // If clicked on the same node, reset the selected node
-    if (previousNode === selectedNode) {
-        previousNode = null;
-        selectedNode = null;
+    // Return if no node is selected
+    if (selectedNode === null)
         return;
-    }
 
     // Change the color of the selected node
     graphArea.selectAll("path")
@@ -1029,12 +1165,15 @@ function updateSelectedDate(circle) {
         selectedEndDate = circle.date;
     }
 
-    updateAfterDateChange();
+    updateAllCharts();
 }
 
-function updateAfterDateChange() {
+function updateAllCharts() {
     // Filter nodes
     filterNodes();
+
+    // Update links
+    updateSelectedNodeLinks();
 
     // Update graph
     drawGraph();
