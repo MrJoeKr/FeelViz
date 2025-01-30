@@ -446,28 +446,9 @@ function drawGraph() {
         .on("zoom", function(event) {
             transform = event.transform;
             graphArea.attr("transform", event.transform);
-        })
-        // Use only when mouse wheel is used
-        .filter(function(event) {
-            return event.type === "wheel";
-        });
-    
-    // Dragging
-    const dragSpeed = 1;
-    const drag = d3.drag()
-        .on("drag", function(event) {
-            // If dx and dy too big, the graph will move too fast
-            const threshold = 5;
-            if (event.dx > threshold || event.dy > threshold)
-                return;
-
-            transform.x += event.dx * dragSpeed;
-            transform.y += event.dy * dragSpeed;
-            graphArea.attr("transform", transform);
         });
     
     zoomRect.call(zoom)
-        .call(drag)
         .call(zoom.translateTo, graphWidth / 2, graphHeight / 2);
 
     // Add links
@@ -522,6 +503,8 @@ function drawGraph() {
     const label = graphArea
         .append("g")
         .attr("class", "labels")
+        // Make the text unselectable
+        .attr("class", "noselect")
         .selectAll("text")
         .data(graph.nodes)
         .enter()
