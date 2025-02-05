@@ -135,7 +135,7 @@ async function loadData() {
 }
 
 function loadNodes() {
-    return d3.csv("nodes.csv").then(data => {
+    return d3.csv("data/nodes.csv").then(data => {
         for (let i = 0; i < data.length; i++) {
             const date_node = data[i];
             const date = date_node.date;
@@ -301,7 +301,7 @@ function setNodeColors() {
 
 /* CSV file */
 function loadDayStats() {
-    return d3.csv("day_stats.csv").then(data => {
+    return d3.csv("data/day_stats.csv").then(data => {
         for (let i = 0; i < data.length; i++) {
             day_stats[data[i].date] = {
                 mindState: data[i].mindState,
