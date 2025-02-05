@@ -4,6 +4,3 @@ TODO.md
 tmp_*
 # TODO: ignore data for now
 data
-public/nodes.csv
-public/links.csv
-public/day_stats.csv
