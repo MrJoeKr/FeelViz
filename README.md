@@ -12,7 +12,7 @@ Visualization of feelings and day-to-day life using a force-directed graph.
 * node.js
 * npm
 
-## Setup
+## Setup (Locally)
 1. Clone the repository or download the zip
 2. Run `npm install` to install the dependencies
 3. Run `node index.js` to start the server
