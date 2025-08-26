@@ -1,6 +1,12 @@
 # FeelViz
 
-Visualization of feelings and day-to-day life using force-directed graph.
+[Visit here.](https://mrjoekr.github.io/feelviz/)
+
+<p align="left">
+<img width="680" height="432" alt="image" src="https://github.com/user-attachments/assets/1dff533b-5e33-42ca-b142-320ad69fbd32" />
+</p>
+
+Visualization of feelings and day-to-day life using a force-directed graph.
 
 ## Requirements
 * node.js
