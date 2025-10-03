@@ -1,0 +1,2 @@
+# Specify that Jupyter Notebook files are to be treated as vendored code
+*.ipynb linguist-vendored
