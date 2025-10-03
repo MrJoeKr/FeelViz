@@ -2,9 +2,7 @@
 
 [Visit here.](https://mrjoekr.github.io/feelviz/)
 
-<p align="left">
-<img width="680" height="432" alt="image" src="https://github.com/user-attachments/assets/1dff533b-5e33-42ca-b142-320ad69fbd32" />
-</p>
+![Animation-ezgif com-optimize](https://github.com/user-attachments/assets/2cd93bdb-00ba-4f59-92d5-93d50f9b2cd8)
 
 Visualization of feelings and day-to-day life using a force-directed graph.
 
